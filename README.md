@@ -1,5 +1,7 @@
 # nixos
 
+<img width="2560" height="1440" alt="Screenshot_2026-08-17_14-31-32" src="https://github.com/user-attachments/assets/b71220f4-7a07-47f7-8b13-44e40ff8364f" />
+
 Personal NixOS + Hyprland + [caelestia-shell](https://github.com/caelestia-dots/shell) flake config. Single machine (`hyena`), single user, declarative except for a handful of things noted below that genuinely can't be (accounts, pairing, stateful data).
 
 ## Deploying

@@ -5,7 +5,7 @@ Personal NixOS + Hyprland + [caelestia-shell](https://github.com/caelestia-dots/
 ## Deploying
 
 ```
-sudo cp ~/nixos/*.nix /etc/nixos/ && sudo nixos-rebuild switch --flake .#
+cd /etc/nixos && sudo cp ~/nixos/*.nix /etc/nixos/ && sudo nixos-rebuild switch --flake .#
 ```
 
 `nixos-rebuild switch --flake .#` (no name after `#`) picks the `nixosConfigurations` attribute matching the machine's actual hostname — so this only works as-is on a host named `hyena` (see `flake.nix`). A fresh install on different hardware or under a different hostname needs `hardware-configuration.nix` regenerated for that machine, and `username`/`userDescription`/`hostname` in `flake.nix` updated to match.

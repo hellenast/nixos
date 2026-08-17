@@ -1,0 +1,97 @@
+# nixos
+
+Personal NixOS + Hyprland + [caelestia-shell](https://github.com/caelestia-dots/shell) flake config. Single machine (`hyena`), single user, declarative except for a handful of things noted below that genuinely can't be (accounts, pairing, stateful data).
+
+## Deploying
+
+```
+sudo cp ~/nixos/*.nix /etc/nixos/ && sudo nixos-rebuild switch --flake .#
+```
+
+`nixos-rebuild switch --flake .#` (no name after `#`) picks the `nixosConfigurations` attribute matching the machine's actual hostname — so this only works as-is on a host named `hyena` (see `flake.nix`). A fresh install on different hardware or under a different hostname needs `hardware-configuration.nix` regenerated for that machine, and `username`/`userDescription`/`hostname` in `flake.nix` updated to match.
+
+## Files
+
+### `flake.nix`
+Entry point. Pulls in nixpkgs-unstable, home-manager, nix-flatpak, caelestia-shell/cli, the caelestia-dots repo (vendored as a plain source, not a flake — pieces of it get patched/re-sourced directly in `home.nix`), zen-browser, and NixVirt. `username`/`userDescription`/`hostname` are defined once here and threaded into every other module as a `specialArg`, so renaming the user/machine is a one-line change.
+
+### `configuration.nix`
+Core system config: systemd-boot/UEFI, NetworkManager, timezone/locale, AMD graphics, Hyprland + greetd (auto-login straight into Hyprland, no display manager prompt), memory tuning (lowered `vm.swappiness` + zram as compressed RAM-backed swap, ahead of the disk swap partition in `hardware-configuration.nix`), xdg-desktop-portals, polkit agent, sleep/suspend disabled outright, PipeWire audio, fonts, Bluetooth, gvfs (needed for Thunar's trash support), system-wide Flatpak (Sober/Roblox, with weekly auto-updates), the user account itself, and base CLI tools (git, curl, wget, usbutils).
+
+### `home.nix`
+The bulk of the actual desktop environment, managed via home-manager. Caelestia shell + CLI configuration (theming toggles, scratchpad apps for btop/Discord/Spotify), Zen as the default browser, Kitty as the terminal (with a custom font + transparency), the app package list (Vesktop, Spicetify, VSCodium, Thunar + archive plugins, screenshot tooling, etc.), the vendored Hyprland config from the dots plus a `hypr-user.lua` override file (keyboard layout, monitor layout, cursor theme, lock-on-session-start, custom screenshot keybinds, kitty as the default terminal instead of foot), vendored fish/spicetify/Thunar/VSCodium configs, and a patched copy of the dots' `rules.lua` (excludes Vesktop from a scratchpad workspace group it shouldn't be in). This is the file most likely to need hand-editing for hardware that isn't this exact machine (monitor layout especially).
+
+### `media.nix`
+VLC (video/audio, set as the default app for common media MIME types), Krita, and Drawing (lightweight image crop/rotate/annotate).
+
+### `dev.nix`
+Docker (installed but not started at boot — starts on demand the first time `docker` is actually used), the user added to the `docker` group, a Rancher server container for local Kubernetes cluster management (also not auto-started — `systemctl start docker-rancher` when wanted), and CLI/GUI dev tooling: kubectl, helm, the `rancher` CLI, docker-compose/buildx, Cypress (E2E testing), Beekeeper Studio (DB client), Insomnia (API client).
+
+### `amazfit.nix`
+Amazfish (Flatpak) as the companion app for an Amazfit GTR2e watch, a custom-packaged `huami-token` CLI, and a `amazfit-get-key.sh` helper script that fetches the watch's Bluetooth pairing key from Huami/Zepp's servers. See Manual Setup below — this one has real interactive steps every time the watch is re-paired.
+
+### `gaming.nix`
+Steam (Remote Play + dedicated-server firewall rules, gamescope session for fullscreen game launches), gamescope itself, and GameMode for automatic per-game performance tweaks.
+
+### `vr.nix`
+ALVR — streams SteamVR content to a standalone headset (Quest, etc.) over Wi-Fi. Just the server + firewall ports; headset pairing itself is outside Nix.
+
+### `windows-vm.nix`
+A KVM/QEMU/libvirt-managed Windows 10 VM ("dubbingai-win10"), declared via NixVirt, with USB mic passthrough by vendor/product ID and SPICE for display/audio. Exists specifically to run a Windows-only voice-changer app ("Dubbing AI") that needs real kernel-mode drivers. The VM's disk is genuinely stateful (the actual Windows install lives there, not something Nix can rebuild) — see Manual Setup.
+
+### `audio-routing.nix`
+A PipeWire virtual-mic (null sink + its paired monitor source), run as a systemd user service, used to feed the Windows VM's voice-changer output into any host app's mic input (Discord, games, etc.).
+
+### `caelestia-system.nix`
+System-level plumbing caelestia-shell's dynamic theming needs but that home-manager can't provide on its own: enables dconf (GTK theme writes), and passwordless sudo rules so caelestia's hardcoded `sudo -n papirus-folders` call (used to recolor folder icons on every theme switch) doesn't prompt for a password each time.
+
+### `hardware-configuration.nix`
+Auto-generated by `nixos-generate-config`. Filesystem UUIDs, kernel modules, CPU microcode — specific to this exact machine's disks and hardware. **Not portable.** A different machine needs its own freshly generated copy, not this one.
+
+## Staying updated
+
+Flatpak apps (Sober, Spotify) update themselves on a weekly systemd timer — `services.flatpak.update.auto`, no action needed. One caveat: an update to Spotify overwrites spicetify's in-place patch until something re-applies it, which happens somewhat naturally (`caelestia-spotify-resync.sh` runs `spicetify apply` on every theme/scheme change) but isn't instant — if Spotify looks unthemed right after an update, change the wallpaper once or run `spicetify apply` by hand.
+
+Everything else (nixpkgs, home-manager, caelestia-shell/cli, zen-browser, NixVirt) is pinned in `flake.lock` and does *not* auto-update — a bad bump is the kind of thing worth reviewing before committing to, and deploying needs an interactive `sudo` password regardless. Run `update-flake.sh` to refresh `flake.lock` and see what changed (shows a `git diff` if the repo is under git), then deploy the usual way once you've looked it over:
+```
+sudo cp ~/nixos/*.nix /etc/nixos/ && sudo nixos-rebuild switch --flake .#
+```
+
+## Manual setup
+
+Things a plain `nixos-rebuild switch` can't do for you — either because they're inherently interactive (account logins, device pairing, 2FA), or because they involve real stateful data Nix deliberately doesn't touch.
+
+### Every fresh install / new machine
+- Regenerate `hardware-configuration.nix` for the actual hardware (`nixos-generate-config`).
+- Update `username`/`userDescription`/`hostname` in `flake.nix` if this isn't going onto a machine literally named `hyena`.
+- Log out and back in (or reboot) once after the first deploy — group memberships (`docker`, `libvirtd`, `wheel`, `video`, `audio`) only take effect on next login, not immediately after `nixos-rebuild switch`.
+
+### Amazfit watch (`amazfit.nix`)
+1. Pair and sync the watch at least once through the official Zepp mobile app first — `huami-token` can't find a device that's never synced.
+2. Run `amazfit-get-key.sh` and type the Zepp account email/password when prompted (password goes straight to `huami-token`, never stored anywhere).
+3. Copy the printed auth key into Amazfish: Settings > Device > Auth Key.
+4. Repeat 2–3 any time the watch is unpaired and re-paired.
+
+### Spotify (`home.nix`)
+- Installed as a user-scope Flatpak so spicetify can patch it — log into Spotify normally on first launch.
+- Live theme sync doesn't work under Flatpak (`spicetify watch` crashes outside its sandbox), so colors only update via a postHook script on scheme change — restart Spotify by hand to actually see the new theme.
+
+### VSCodium Caelestia integration
+- The extension is installed once from a vendored `.vsix` and then left alone (so it can regenerate its own theme file without Nix stomping it every rebuild) — an actual extension version bump requires manually deleting the installed extension directory first so it reinstalls.
+
+### Docker / Rancher (`dev.nix`)
+- Both are deliberately not auto-started, to avoid idle resource usage. Just running any `docker` command starts the daemon on demand; Rancher needs `systemctl start docker-rancher` explicitly.
+- First visit to the Rancher GUI (`https://localhost:8443`) will walk through its own first-run admin account setup.
+
+### Windows VM / Dubbing AI (`windows-vm.nix`, `audio-routing.nix`)
+- Needs a Windows 10 ISO manually placed at `~/isos/Win10.iso` before the VM can boot for the first time.
+- The VM's disk (`/var/lib/libvirt/images/dubbingai-win10.qcow2`) is real, stateful data — not rebuilt by Nix. On a host reformat: restore it from a backup kept on a separate drive, or let the activation script create a blank disk and manually reinstall Windows + Dubbing AI from scratch.
+- If the physical mic ever changes, re-check its USB vendor/product ID with `lsusb` and update `micVendorId`/`micProductId`.
+- Routing audio actually requires, each time it's needed: inside the guest, turn on Dubbing AI's "Listen to myself" with output set to Speakers; on the host, route the VM's SPICE playback stream into `DubbingAI_Virtual_Mic` via `pavucontrol`'s Playback tab, then pick "Monitor of DubbingAI_Virtual_Mic" as the mic input in whichever app needs it.
+
+### ALVR / VR headset (`vr.nix`)
+- Headset pairing (installing the ALVR client APK on the headset, connecting it to this PC) is an interactive step outside of Nix, done once per headset.
+- SteamVR itself needs installing/configuring through Steam.
+
+### GameMode (`gaming.nix`)
+- Applies automatically to anything launched through Steam. For anything else, add `gamemoderun %command%` to that game's launch options by hand.

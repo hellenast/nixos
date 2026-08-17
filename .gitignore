@@ -1,0 +1,12 @@
+# Nix build output symlinks (nix build, nix flake check without --no-link)
+result
+result-*
+
+# direnv, if this repo ever gets a .envrc
+.direnv/
+
+# Editor/OS cruft
+.DS_Store
+*.swp
+*~
+.vscode/

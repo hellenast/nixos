@@ -48,7 +48,7 @@ Per-app ProtonVPN split tunneling: a dedicated network namespace with its own Wi
 System Tor daemon (client-only, exposing the standard local SOCKS proxy on `127.0.0.1:9050`) plus a "Vesktop (Tor)" launcher — a wrapper script + desktop item that starts Vesktop with `--proxy-server="socks5://127.0.0.1:9050"`, routing it (including DNS) through Tor. Used the same way as `protonvpn.nix` — to work around Discord's regional video-sharing block — but via Chromium's native `--proxy-server` flag rather than a routed VPN tunnel, since torsocks-style LD_PRELOAD wrapping doesn't work on Electron/Chromium's own network stack.
 
 ### `audio-routing.nix`
-A PipeWire virtual-mic (null sink + its paired monitor source), run as a systemd user service, used to feed the Windows VM's voice-changer output into any host app's mic input (Discord, games, etc.).
+A PipeWire virtual-mic (null sink + a `module-remap-source`-wrapped copy of its paired monitor source, since apps and pickers hide raw monitor sources from mic-input lists), run as a systemd user service, used to feed the Windows VM's voice-changer output into any host app's default mic input (Discord, games, etc.).
 
 ### `caelestia-system.nix`
 System-level plumbing caelestia-shell's dynamic theming needs but that home-manager can't provide on its own: enables dconf (GTK theme writes), and passwordless sudo rules so caelestia's hardcoded `sudo -n papirus-folders` call (used to recolor folder icons on every theme switch) doesn't prompt for a password each time.
@@ -95,7 +95,7 @@ Things a plain `nixos-rebuild switch` can't do for you — either because they'r
 - Needs a Windows 10 ISO manually placed at `~/isos/Win10.iso` before the VM can boot for the first time.
 - The VM's disk (`/var/lib/libvirt/images/dubbingai-win10.qcow2`) is real, stateful data — not rebuilt by Nix. On a host reformat: restore it from a backup kept on a separate drive, or let the activation script create a blank disk and manually reinstall Windows + Dubbing AI from scratch.
 - If the physical mic ever changes, re-check its USB vendor/product ID with `lsusb` and update `micVendorId`/`micProductId`.
-- Routing audio actually requires, each time it's needed: inside the guest, turn on Dubbing AI's "Listen to myself" with output set to Speakers; on the host, route the VM's SPICE playback stream into `DubbingAI_Virtual_Mic` via `pavucontrol`'s Playback tab, then pick "Monitor of DubbingAI_Virtual_Mic" as the mic input in whichever app needs it.
+- Routing audio actually requires, each time it's needed: inside the guest, turn on Dubbing AI's "Hear Myself" with output set to Speakers; on the host, route the VM's SPICE playback stream into `DubbingAI_Virtual_Mic` via `pavucontrol`'s Playback tab. The `audio-routing.nix` service already sets the remapped `DubbingAI_Mic` source as the system default input, so apps that just use "the default mic" (Sober, Zapzap, etc.) pick it up automatically — no per-app source selection needed.
 
 ### ProtonVPN (`protonvpn.nix`)
 - Download a WireGuard config from the ProtonVPN dashboard (Downloads -> WireGuard configuration; pick whichever server/country you want — note some locations require a paid plan, not the free tier) and place it at `/etc/protonvpn/proton.conf` on the machine, e.g.:

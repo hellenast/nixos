@@ -41,6 +41,9 @@ ALVR — streams SteamVR content to a standalone headset (Quest, etc.) over Wi-F
 ### `windows-vm.nix`
 A KVM/QEMU/libvirt-managed Windows 10 VM ("dubbingai-win10"), declared via NixVirt, with USB mic passthrough by vendor/product ID and SPICE for display/audio. Exists specifically to run a Windows-only voice-changer app ("Dubbing AI") that needs real kernel-mode drivers. The VM's disk is genuinely stateful (the actual Windows install lives there, not something Nix can rebuild) — see Manual Setup.
 
+### `protonvpn.nix`
+Per-app ProtonVPN split tunneling: a dedicated network namespace with its own WireGuard tunnel (via `wg-quick`), a `protonvpn-run` wrapper, and a "<Name> (VPN)" launcher for each app listed in the module's `apps` list — only those apps' traffic goes through the VPN, everything else keeps using the normal default route. See Manual Setup below for the one-time WireGuard config placement.
+
 ### `audio-routing.nix`
 A PipeWire virtual-mic (null sink + its paired monitor source), run as a systemd user service, used to feed the Windows VM's voice-changer output into any host app's mic input (Discord, games, etc.).
 
@@ -90,6 +93,18 @@ Things a plain `nixos-rebuild switch` can't do for you — either because they'r
 - The VM's disk (`/var/lib/libvirt/images/dubbingai-win10.qcow2`) is real, stateful data — not rebuilt by Nix. On a host reformat: restore it from a backup kept on a separate drive, or let the activation script create a blank disk and manually reinstall Windows + Dubbing AI from scratch.
 - If the physical mic ever changes, re-check its USB vendor/product ID with `lsusb` and update `micVendorId`/`micProductId`.
 - Routing audio actually requires, each time it's needed: inside the guest, turn on Dubbing AI's "Listen to myself" with output set to Speakers; on the host, route the VM's SPICE playback stream into `DubbingAI_Virtual_Mic` via `pavucontrol`'s Playback tab, then pick "Monitor of DubbingAI_Virtual_Mic" as the mic input in whichever app needs it.
+
+### ProtonVPN (`protonvpn.nix`)
+- Download a WireGuard config from the ProtonVPN dashboard (Downloads -> WireGuard configuration; pick whichever server/country you want — note some locations require a paid plan, not the free tier) and place it at `/etc/protonvpn/proton.conf` on the machine, e.g.:
+  ```
+  sudo mkdir -p /etc/protonvpn
+  sudo mv ~/Downloads/protonvpn-*.conf /etc/protonvpn/proton.conf
+  sudo chmod 600 /etc/protonvpn/proton.conf
+  ```
+  Kept outside the Nix store deliberately, since store paths are world-readable and this file has your WireGuard private key in it.
+- Edit the `apps` list in `protonvpn.nix` to name whichever apps should go through the VPN (Vesktop is in there already), then redeploy — each gets its own "<Name> (VPN)" launcher next to its normal one.
+- The tunnel comes up on its own at every boot (`protonvpn-netns`/`protonvpn-wg` are both `wantedBy multi-user.target`) — no manual start needed after the first setup.
+- To switch servers/country later: download a new config from the dashboard and overwrite `/etc/protonvpn/proton.conf`, then `sudo systemctl restart protonvpn-wg`. Same command if Proton ever rotates keys.
 
 ### ALVR / VR headset (`vr.nix`)
 - Headset pairing (installing the ALVR client APK on the headset, connecting it to this PC) is an interactive step outside of Nix, done once per headset.

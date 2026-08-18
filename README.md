@@ -27,7 +27,7 @@ The bulk of the actual desktop environment, managed via home-manager. Caelestia 
 VLC (video/audio, set as the default app for common media MIME types), Krita, and Drawing (lightweight image crop/rotate/annotate).
 
 ### `dev.nix`
-Docker (installed but not started at boot — starts on demand the first time `docker` is actually used), the user added to the `docker` group, a Rancher server container for local Kubernetes cluster management (also not auto-started — `systemctl start docker-rancher` when wanted), and CLI/GUI dev tooling: kubectl, helm, the `rancher` CLI, docker-compose/buildx, Cypress (E2E testing), Beekeeper Studio (DB client), Insomnia (API client).
+Docker (installed but not started at boot — starts on demand the first time `docker` is actually used), the user added to the `docker` group, a Rancher server container for local Kubernetes cluster management (also not auto-started — `systemctl start docker-rancher` when wanted), and CLI/GUI dev tooling: kubectl, helm, the `rancher` CLI, docker-compose/buildx, Cypress (E2E testing), Beekeeper Studio (DB client), Insomnia (API client), plus node/bun/pnpm for frontend (React/Next.js) work. No `services.postgresql` — Postgres for these projects runs per-project via docker-compose instead.
 
 ### `amazfit.nix`
 Amazfish (Flatpak) as the companion app for an Amazfit GTR2e watch, a custom-packaged `huami-token` CLI, and a `amazfit-get-key.sh` helper script that fetches the watch's Bluetooth pairing key from Huami/Zepp's servers. See Manual Setup below — this one has real interactive steps every time the watch is re-paired.

@@ -53,6 +53,18 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nixpkgs.config.allowUnfree = true;
 
+  # Garbage collection: every generation (system + home-manager) pins its
+  # own closure in the store forever until something collects it, so this
+  # only grows unbounded otherwise — update-flake.sh (home.nix) bumps
+  # inputs often enough that old generations pile up fast. Daily sweep,
+  # keeping a week of history (enough to roll back a bad rebuild from a
+  # few days ago) and deleting anything older.
+  nix.gc = {
+    automatic = true;
+    dates = "daily";
+    options = "--delete-older-than 7d";
+  };
+
   # --- AMD GPU / graphics ---
   hardware.graphics = {
     enable = true;

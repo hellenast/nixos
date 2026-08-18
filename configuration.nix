@@ -22,6 +22,31 @@ let
     # the .desktop file's own basename above.
     passthru.providedSessions = [ "hyprland" ];
   };
+
+  # regreet's own NixOS module hosts it in cage by default, but cage can
+  # only pick "last enumerated output" or "extend across all outputs" — no
+  # way to name a specific monitor, and "last" landed on the HDMI ultrawide
+  # here instead of the main DP-2 display (confirmed live). sway *can*
+  # target an output by name, so this is a minimal, single-purpose sway
+  # config used only to host the greeter: disabling HDMI-A-1 outright is
+  # what actually guarantees regreet lands on DP-2 (rather than a
+  # `for_window ... move to output` rule, which depends on correctly
+  # guessing regreet's app_id) — with only one output left enabled, there's
+  # nowhere else for it to go. No bar, no gaps, no keybindings at all
+  # (nothing here to hijack — this session has nothing else running in it
+  # to switch to), and the single `exec` line running regreet is what
+  # decides when the session ends: once regreet exits (successful login or
+  # otherwise), `swaymsg exit` tears sway down and hands control back to
+  # greetd, the same way cage tears down when its one wrapped app exits.
+  greeterSwayConfig = pkgs.writeText "greeter-sway-config" ''
+    output DP-2 enable
+    output HDMI-A-1 disable
+
+    default_border none
+    for_window [app_id=".*"] fullscreen enable
+
+    exec "${lib.getExe config.services.displayManager.regreet.package}; swaymsg exit"
+  '';
 in
 {
   imports = [
@@ -103,12 +128,12 @@ in
     xwayland.enable = true;
   };
 
-  # A themed GTK login screen (regreet, run inside the cage kiosk
-  # compositor) prompts for a password on every boot/logout before Hyprland
-  # ever starts — no more autologin, and no more caelestia locking the
-  # screen again immediately on session start (see home.nix ->
-  # caelestia/hypr-user.lua, that hyprland.start hook is gone now that this
-  # covers the same job at the actual entry point).
+  # A themed GTK login screen (regreet, run inside a minimal sway session —
+  # see greeterSwayConfig above) prompts for a password on every
+  # boot/logout before Hyprland ever starts — no more autologin, and no
+  # more caelestia locking the screen again immediately on session start
+  # (see home.nix -> caelestia/hypr-user.lua, that hyprland.start hook is
+  # gone now that this covers the same job at the actual entry point).
   #
   # Went with regreet over tuigreet (the first attempt here) specifically
   # because tuigreet is a bare terminal UI — plain text on a black
@@ -122,7 +147,19 @@ in
       package = pkgs.bibata-cursors;
       name = "Bibata-Modern-Ice";
     };
+    # regreet defaults to plain Adwaita, which (unlike the dark caelestia
+    # theme everywhere else) renders as a light/white window — this is the
+    # actual GTK dark-mode preference, not a different theme name; modern
+    # Adwaita follows it instead of needing a separate "-dark" theme.
+    settings.GTK.application_prefer_dark_theme = true;
   };
+
+  # Overrides the module's own cage-based default (see greeterSwayConfig
+  # above for why) — a plain assignment here beats the module's mkDefault
+  # without needing lib.mkForce.
+  services.greetd.settings.default_session.command =
+    "${pkgs.dbus}/bin/dbus-run-session ${lib.getExe pkgs.sway} --config ${greeterSwayConfig}";
+
   services.displayManager.sessionPackages = [ hyprlandSession ];
 
   # Portals: screen share, file pickers, etc. under Wayland.

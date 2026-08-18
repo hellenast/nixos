@@ -48,6 +48,14 @@
     docker-compose   # multi-container compose files (docker-compose.yml)
     docker-buildx    # buildx plugin, for multi-arch/advanced image builds
 
+    # JS/TS frontend dev (React, Next.js). Postgres for these projects runs
+    # via docker-compose instead of a Nix-managed service, so there's no
+    # `services.postgresql` here — docker-compose.nix files handle spinning
+    # it up per project.
+    nodejs           # node runtime + npm
+    bun              # fast JS runtime/bundler/package manager
+    pnpm             # pnpm package manager
+
     kubectl          # talks to any Kubernetes cluster's API (Rancher's or remote)
     kubernetes-helm  # package manager for Kubernetes (charts)
     rancher          # CLI for logging into and managing Rancher-managed clusters,

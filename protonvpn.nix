@@ -18,13 +18,13 @@ let
   nsSubnet = "10.10.10.0/24";
 
   # WireGuard config downloaded from ProtonVPN's dashboard (Downloads ->
-  # WireGuard configuration). Deliberately NOT stored in this repo or the
-  # Nix store — the whole point of Nix store paths is that they're world
-  # readable (0444, in /nix/store), which would leak the private key to
-  # every local user. Kept as a plain file only root can read instead. See
-  # README Manual Setup for how to put it there.
-  wgConfPath = "/etc/protonvpn/proton.conf";
-  wgInterface = "proton"; # wg-quick derives this from the conf's basename
+  # WireGuard configuration). Decrypted by sops-nix (see secrets.nix) into
+  # /run/secrets/protonvpn-conf at activation time — a tmpfs path, root-only
+  # (0400), gone on reboot — rather than the plain, world-readable file at
+  # /etc/protonvpn/proton.conf this used to be. The encrypted source of
+  # truth is secrets/secrets.yaml, safe to commit to this repo.
+  wgConfPath = config.sops.secrets."protonvpn-conf".path;
+  wgInterface = "protonvpn"; # wg-quick derives this from the conf's basename (secrets.nix pins the path to .../protonvpn.conf)
 
   # ProtonVPN's internal DNS resolver, only reachable once the tunnel is
   # up — matches the `DNS = ...` line in configs downloaded from their

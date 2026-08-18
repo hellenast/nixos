@@ -46,6 +46,15 @@
       url = "github:AshleyYakeley/NixVirt";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Decrypts secrets (see secrets.nix) at activation time so things like
+    # the ProtonVPN WireGuard config can live in this repo encrypted,
+    # instead of as a plain root-only file I have to remember to place by
+    # hand outside of Nix entirely.
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, caelestia-shell, caelestia-cli, caelestia-dots-src, zen-browser, ... } @ inputs: let
@@ -82,9 +91,11 @@
         ./dev.nix
         ./protonvpn.nix
         ./tor.nix
+        ./secrets.nix
 
         inputs.nix-flatpak.nixosModules.nix-flatpak
         inputs.nixvirt.nixosModules.default
+        inputs.sops-nix.nixosModules.sops
 
         home-manager.nixosModules.home-manager
         {

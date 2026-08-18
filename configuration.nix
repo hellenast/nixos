@@ -165,13 +165,34 @@
 
   # --- Flatpak ---
   services.flatpak.enable = true;
-  # nix-flatpak's own auto-updater — registers a weekly systemd timer that
-  # updates installed Flatpaks (Sober here) in place. Nix itself has
-  # nothing to do with keeping Flatpak apps current; this is the one piece
-  # of "staying updated" that isn't covered by bumping flake.lock.
+  # nix-flatpak's own auto-updater — registers a systemd timer that updates
+  # installed Flatpaks (Sober here) in place. Nix itself has nothing to do
+  # with keeping Flatpak apps current; this is the one piece of "staying
+  # updated" that isn't covered by bumping flake.lock. Daily rather than
+  # weekly: Sober/Roblox ships new builds faster than once a week, and
+  # Sober refuses to launch at all against a stale build until it's updated.
   services.flatpak.update.auto = {
     enable = true;
-    onCalendar = "weekly";
+    onCalendar = "daily";
+  };
+  # Also update on every boot, not just once a day — Sober/Roblox ships
+  # builds often enough that a same-day gap can still leave it stale, and
+  # Sober refuses to launch at all against a stale build. Independent of
+  # the timer above (its unit name is a nix-flatpak internal), so it isn't
+  # affected by module changes there.
+  #
+  # Not ordered after flatpak-managed-install.service: that unit is itself
+  # After=multi-user.target (it runs late, triggered by activation), so
+  # depending on it while also being WantedBy=multi-user.target creates an
+  # ordering cycle that systemd resolves by silently dropping this service
+  # from the boot. `flatpak update` doesn't need to wait for it anyway.
+  systemd.services.flatpak-update-on-boot = {
+    description = "Update Flatpak apps on boot";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig.Type = "oneshot";
+    script = "${pkgs.flatpak}/bin/flatpak update --system -y";
   };
   services.flatpak.remotes = [
     {

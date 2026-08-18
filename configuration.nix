@@ -1,5 +1,28 @@
 { config, pkgs, lib, inputs, username, userDescription, hostname, ... }:
 
+let
+  # regreet (below) picks sessions to launch from wayland-sessions .desktop
+  # entries — nothing installs one for Hyprland on its own, since this setup
+  # never used a session-file-driven greeter before (greetd execed
+  # start-hyprland directly). This is the officially supported way to
+  # register one (services.displayManager.sessionPackages), same pattern
+  # nixpkgs' own river/dwl modules use for themselves.
+  hyprlandSession = pkgs.writeTextFile {
+    name = "hyprland-wayland-session";
+    destination = "/share/wayland-sessions/hyprland.desktop";
+    text = ''
+      [Desktop Entry]
+      Name=Hyprland
+      Comment=Hyprland compositor session
+      Exec=start-hyprland
+      Type=Application
+    '';
+    # services.displayManager.sessionPackages requires this — it's how NixOS
+    # knows which session name(s) this package makes available, matching
+    # the .desktop file's own basename above.
+    passthru.providedSessions = [ "hyprland" ];
+  };
+in
 {
   imports = [
     ./hardware-configuration.nix
@@ -80,15 +103,27 @@
     xwayland.enable = true;
   };
 
-  # tuigreet prompts for a password on every boot/logout before Hyprland
+  # A themed GTK login screen (regreet, run inside the cage kiosk
+  # compositor) prompts for a password on every boot/logout before Hyprland
   # ever starts — no more autologin, and no more caelestia locking the
   # screen again immediately on session start (see home.nix ->
   # caelestia/hypr-user.lua, that hyprland.start hook is gone now that this
   # covers the same job at the actual entry point).
-  services.greetd = {
+  #
+  # Went with regreet over tuigreet (the first attempt here) specifically
+  # because tuigreet is a bare terminal UI — plain text on a black
+  # background, no theming to speak of. regreet is an actual GTK app: it
+  # gets a real background/cursor/icon theme and font, set below, though it
+  # can't pick up caelestia's *dynamic* colors the way in-session GTK apps
+  # do — it runs before the session (and caelestia) exist at all.
+  services.displayManager.regreet = {
     enable = true;
-    settings.default_session.command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd start-hyprland";
+    cursorTheme = {
+      package = pkgs.bibata-cursors;
+      name = "Bibata-Modern-Ice";
+    };
   };
+  services.displayManager.sessionPackages = [ hyprlandSession ];
 
   # Portals: screen share, file pickers, etc. under Wayland.
   xdg.portal = {

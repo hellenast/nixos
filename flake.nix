@@ -80,6 +80,7 @@
         ./amazfit.nix
         ./media.nix
         ./dev.nix
+        ./protonvpn.nix
 
         inputs.nix-flatpak.nixosModules.nix-flatpak
         inputs.nixvirt.nixosModules.default

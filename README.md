@@ -2,7 +2,16 @@
 
 <img width="2560" height="1440" alt="Screenshot_2026-08-17_14-31-32" src="https://github.com/user-attachments/assets/b71220f4-7a07-47f7-8b13-44e40ff8364f" />
 
-Personal NixOS + Hyprland + [caelestia-shell](https://github.com/caelestia-dots/shell) flake config. Single machine (`hyena`), single user, declarative except for a handful of things noted below that genuinely can't be (accounts, pairing, stateful data).
+Personal NixOS + Hyprland + [caelestia-shell](https://github.com/caelestia-dots/shell) flake config, built to be forkable — everything specific to this person's machine (username, hostname, locale, monitor layout, cursor theme) lives in one file, `variables.nix`. Declarative except for a handful of things noted below that genuinely can't be (accounts, pairing, stateful data).
+
+## Using this on your own machine
+
+1. Fork/clone the repo.
+2. Regenerate `hardware-configuration.nix` for your actual hardware (`nixos-generate-config`) — disk UUIDs, kernel modules, and CPU microcode are never portable between machines.
+3. Edit `variables.nix` — username, hostname, timezone/locale/keyboard, monitor names + layout, cursor theme. That's the only file identity/preference-wise you need to touch; everything else reads from it.
+4. A few modules are tied to hardware or apps specific to this setup and probably don't apply to you: `amazfit.nix` (a specific watch), `windows-vm.nix` + `audio-routing.nix` (a Windows VM running one particular Windows-only app, plus the virtual mic that feeds its output back into the host), `vr.nix` (a specific headset workflow). Delete the ones you don't want from `flake.nix`'s `modules` list and from disk.
+5. `protonvpn.nix`'s `apps` list and `tor.nix`'s launcher are also personal choices — edit or remove them.
+6. See "Manual setup" below for anything that can't be handled by `nixos-rebuild` alone (secrets, device pairing).
 
 ## Deploying
 
@@ -10,20 +19,23 @@ Personal NixOS + Hyprland + [caelestia-shell](https://github.com/caelestia-dots/
 sudo mkdir -p /etc/nixos/secrets && sudo cp ~/nixos/secrets/secrets.yaml /etc/nixos/secrets/secrets.yaml && sudo cp ~/nixos/*.nix /etc/nixos/ && cd /etc/nixos && sudo nixos-rebuild switch --flake .#
 ```
 
-`nixos-rebuild switch --flake .#` (no name after `#`) picks the `nixosConfigurations` attribute matching the machine's actual hostname — so this only works as-is on a host named `hyena` (see `flake.nix`). A fresh install on different hardware or under a different hostname needs `hardware-configuration.nix` regenerated for that machine, and `username`/`userDescription`/`hostname` in `flake.nix` updated to match.
+`nixos-rebuild switch --flake .#` (no name after `#`) picks the `nixosConfigurations` attribute matching the machine's actual hostname — so this only works as-is on a host whose hostname matches `hostname` in `variables.nix`.
 
 The `mkdir`/`cp` at the front handles `secrets/secrets.yaml` (see `secrets.nix`) explicitly — the `*.nix` glob that follows only ever matches `.nix` files, so that secret wouldn't come along on its own otherwise.
 
 ## Files
 
+### `variables.nix`
+Single source of truth for everything specific to this person/machine: `username`/`userDescription`/`hostname`, timezone/locale/console keymap, Hyprland keyboard layout/variant, monitor names + layout (`primaryMonitor`/`secondaryMonitor`), and cursor theme/size. Threaded into every other module as `specialArgs` via `flake.nix`, so adapting this repo to a different person/machine is (mostly) a one-file edit.
+
 ### `flake.nix`
-Entry point. Pulls in nixpkgs-unstable, home-manager, nix-flatpak, caelestia-shell/cli, the caelestia-dots repo (vendored as a plain source, not a flake — pieces of it get patched/re-sourced directly in `home.nix`), zen-browser, and NixVirt. `username`/`userDescription`/`hostname` are defined once here and threaded into every other module as a `specialArg`, so renaming the user/machine is a one-line change.
+Entry point. Pulls in nixpkgs-unstable, home-manager, nix-flatpak, caelestia-shell/cli, the caelestia-dots repo (vendored as a plain source, not a flake — pieces of it get patched/re-sourced directly in `home.nix`), zen-browser, and NixVirt. Imports `variables.nix` and spreads it into `specialArgs`/`extraSpecialArgs` for every module below.
 
 ### `configuration.nix`
-Core system config: systemd-boot/UEFI, NetworkManager, timezone/locale, AMD graphics, Hyprland, memory tuning (lowered `vm.swappiness` + zram as compressed RAM-backed swap, ahead of the disk swap partition in `hardware-configuration.nix`), xdg-desktop-portals, polkit agent, sleep/suspend disabled outright, PipeWire audio, fonts, Bluetooth, gvfs (needed for Thunar's trash support), system-wide Flatpak (Sober/Roblox, with weekly auto-updates), the user account itself, and base CLI tools (git, curl, wget, usbutils). The login screen itself is also here: greetd running regreet (a themed GTK greeter) inside a minimal, single-purpose sway session — sway specifically because it can target an output by name, which is what actually gets the greeter onto the main DP-2 monitor instead of spanning/landing on the wrong one; regreet's own default (cage) can't do that. No autologin — every boot/logout prompts for a password before Hyprland starts.
+Core system config: systemd-boot/UEFI, NetworkManager, timezone/locale, AMD graphics, Hyprland, memory tuning (lowered `vm.swappiness` + zram as compressed RAM-backed swap, ahead of the disk swap partition in `hardware-configuration.nix`), xdg-desktop-portals, polkit agent, sleep/suspend disabled outright, PipeWire audio, fonts, Bluetooth, gvfs (needed for Thunar's trash support), system-wide Flatpak (Sober/Roblox, with weekly auto-updates), the user account itself, and base CLI tools (git, curl, wget, usbutils). The login screen itself is also here: greetd running regreet (a themed GTK greeter) inside a minimal, single-purpose sway session — sway specifically because it can target an output by name, which is what actually gets the greeter onto the main monitor (`variables.nix` -> `primaryMonitor`) instead of spanning/landing on the wrong one; regreet's own default (cage) can't do that. No autologin — every boot/logout prompts for a password before Hyprland starts.
 
 ### `home.nix`
-The bulk of the actual desktop environment, managed via home-manager. Caelestia shell + CLI configuration (theming toggles, scratchpad apps for btop/Discord/Spotify), Zen as the default browser, Kitty as the terminal (with a custom font + transparency), the app package list (Vesktop, Spicetify, VSCodium, Thunar + archive plugins, screenshot tooling, etc.), the vendored Hyprland config from the dots plus a `hypr-user.lua` override file (keyboard layout, monitor layout, cursor theme, custom screenshot keybinds, kitty as the default terminal instead of foot), vendored fish/spicetify/Thunar/VSCodium configs, and a patched copy of the dots' `rules.lua` (excludes Vesktop from a scratchpad workspace group it shouldn't be in). This is the file most likely to need hand-editing for hardware that isn't this exact machine (monitor layout especially).
+The bulk of the actual desktop environment, managed via home-manager. Caelestia shell + CLI configuration (theming toggles, scratchpad apps for btop/Discord/Spotify), Zen as the default browser, Kitty as the terminal (with a custom font + transparency), the app package list (Vesktop, Spicetify, VSCodium, Thunar + archive plugins, screenshot tooling, etc.), the vendored Hyprland config from the dots plus a `hypr-user.lua` override file (keyboard layout, monitor layout, cursor theme, custom screenshot keybinds, kitty as the default terminal instead of foot — all read from `variables.nix`), vendored fish/spicetify/Thunar/VSCodium configs, and a patched copy of the dots' `rules.lua` (excludes Vesktop from a scratchpad workspace group it shouldn't be in). Single-monitor setups: point `secondaryMonitor.output` in `variables.nix` at the same name as `primaryMonitor.output` and drop the second `hl.monitor` block here.
 
 ### `media.nix`
 VLC (video/audio, set as the default app for common media MIME types), Krita, and Drawing (lightweight image crop/rotate/annotate).
@@ -82,7 +94,7 @@ Things a plain `nixos-rebuild switch` can't do for you — either because they'r
 
 ### Every fresh install / new machine
 - Regenerate `hardware-configuration.nix` for the actual hardware (`nixos-generate-config`).
-- Update `username`/`userDescription`/`hostname` in `flake.nix` if this isn't going onto a machine literally named `hyena`.
+- Update `variables.nix` — at minimum `username`/`userDescription`/`hostname`; also monitor names/layout and cursor theme if this machine's setup differs (see "Using this on your own machine" above).
 - Log out and back in (or reboot) once after the first deploy — group memberships (`docker`, `libvirtd`, `wheel`, `video`, `audio`) only take effect on next login, not immediately after `nixos-rebuild switch`.
 - Secrets (`secrets.nix`) won't decrypt on a machine that's never seen the age private key before — see the "Secrets" section below, this needs doing *before* the first `nixos-rebuild switch` that references a `sops.secrets.*` value (currently just ProtonVPN).
 

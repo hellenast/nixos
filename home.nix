@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, username, ... }:
+{ config, pkgs, lib, inputs, username, keyboardLayout, keyboardVariant, primaryMonitor, secondaryMonitor, cursorTheme, cursorSize, ... }:
 
 let
   dots = inputs.caelestia-dots-src;
@@ -167,8 +167,8 @@ in
   home.pointerCursor = {
     enable = true;
     package = pkgs.bibata-cursors;
-    name = "Bibata-Modern-Ice";
-    size = 24;
+    name = cursorTheme;
+    size = cursorSize;
     gtk.enable = true;
     x11.enable = true;
   };
@@ -484,8 +484,8 @@ in
   xdg.configFile."caelestia/hypr-user.lua".text = ''
     hl.config({
       input = {
-        kb_layout = "us",
-        kb_variant = "intl",
+        kb_layout = "${keyboardLayout}",
+        kb_variant = "${keyboardVariant}",
       },
     })
 
@@ -494,8 +494,8 @@ in
     -- greetd execs Hyprland directly rather than through a login shell, so
     -- home-manager's session-vars script may not have run by the time this
     -- matters.
-    hl.env("XCURSOR_THEME", "Bibata-Modern-Ice")
-    hl.env("XCURSOR_SIZE", "24")
+    hl.env("XCURSOR_THEME", "${cursorTheme}")
+    hl.env("XCURSOR_SIZE", "${toString cursorSize}")
 
     -- Same reasoning, for the wallpaper folder var.
     hl.env("CAELESTIA_WALLPAPERS_DIR", os.getenv("HOME") .. "/Pictures/Wallpapers")
@@ -509,23 +509,23 @@ in
     -- caelestia-system.nix.
     hl.env("USER_HOME", os.getenv("HOME"))
 
-    -- Monitor layout: DP-2 (2560x1440, main, on the left) at full 165Hz,
-    -- HDMI-A-1 (2560x1080 ultrawide) to its right, matching my desk.
-    -- Without this Hyprland re-picks its own defaults on every output
-    -- re-enumeration (e.g. after lock/DPMS), which is why it kept
-    -- reverting to 60Hz / swapping sides on me.
+    -- Monitor layout, from variables.nix — primaryMonitor on the left at
+    -- its native refresh rate, secondaryMonitor to its right. Without this
+    -- Hyprland re-picks its own defaults on every output re-enumeration
+    -- (e.g. after lock/DPMS), which is why it kept reverting to a lower
+    -- refresh rate / swapping sides on me.
     hl.monitor({
-      output = "DP-2",
-      mode = "2560x1440@165",
-      position = "0x0",
+      output = "${primaryMonitor.output}",
+      mode = "${primaryMonitor.mode}",
+      position = "${primaryMonitor.position}",
       scale = 1,
     })
     hl.monitor({
-      output = "HDMI-A-1",
-      mode = "2560x1080@60",
-      position = "2560x0",
+      output = "${secondaryMonitor.output}",
+      mode = "${secondaryMonitor.mode}",
+      position = "${secondaryMonitor.position}",
       scale = 1,
-      transform = 3,
+      transform = ${toString secondaryMonitor.transform},
     })
 
     -- No more locking on session start here — tuigreet (configuration.nix)
@@ -540,9 +540,9 @@ in
       -- Re-issuing it here (this file loads last) wins, since whichever
       -- `hyprctl setcursor` call runs last is what sticks. The sleep is
       -- slack against exec_cmd not being blocking.
-      hl.exec_cmd("sleep 1 && hyprctl setcursor Bibata-Modern-Ice 24 "
-        .. "&& gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Ice "
-        .. "&& gsettings set org.gnome.desktop.interface cursor-size 24")
+      hl.exec_cmd("sleep 1 && hyprctl setcursor ${cursorTheme} ${toString cursorSize} "
+        .. "&& gsettings set org.gnome.desktop.interface cursor-theme ${cursorTheme} "
+        .. "&& gsettings set org.gnome.desktop.interface cursor-size ${toString cursorSize}")
     end)
 
     -- The dots' own keybinds.lua binds Print (and Super+Shift+S /

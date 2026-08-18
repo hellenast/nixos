@@ -137,7 +137,7 @@ in
 
   # So virt-manager doesn't ask for the root password on every routine
   # libvirt action (start/stop/create VM) once I'm in the "libvirtd" group
-  # (configuration.nix -> users.users.hyena.extraGroups).
+  # (configuration.nix -> users.users.${username}.extraGroups).
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
       if (action.id == "org.libvirt.unix.manage" &&

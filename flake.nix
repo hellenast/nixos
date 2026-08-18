@@ -61,24 +61,17 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
-    # Single source of truth for my login user name, threaded into every
-    # module below as a specialArg so it's a one-line change everywhere it's
-    # used (users.users, home.username, sudo rules, /home paths, ...).
-    username = "hyena";
-    # Kept right next to username as a reminder to update both together —
-    # this is the human-readable form of the same account (users.users.*.description).
-    userDescription = "Hyena";
-    # Kept right next to username/userDescription too: the machine's own
-    # name (networking.hostName), a different concept from the login user
-    # but easy to forget when it happens to match. Also drives the
-    # `nixosConfigurations.<name>` attribute below, since
-    # `nixos-rebuild switch --flake .#` (no name after `#`) picks the config
-    # whose attribute name matches the actual machine hostname.
-    hostname = "hyena";
+    # Single source of truth for everything specific to this person/machine
+    # (username, hostname, timezone, monitor layout, cursor theme, ...) —
+    # see variables.nix. Spread into specialArgs below so every module gets
+    # these as plain arguments, and changing a machine to use this repo is a
+    # one-file edit instead of hunting literals across every module.
+    vars = import ./variables.nix;
+    inherit (vars) username hostname;
   in {
     nixosConfigurations.${hostname} = nixpkgs.lib.nixosSystem {
       inherit system;
-      specialArgs = { inherit inputs username userDescription hostname; };
+      specialArgs = { inherit inputs; } // vars;
       modules = [
         ./configuration.nix
         ./windows-vm.nix
@@ -104,7 +97,7 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-backup";
-          home-manager.extraSpecialArgs = { inherit inputs username; };
+          home-manager.extraSpecialArgs = { inherit inputs; } // vars;
           home-manager.users.${username} = import ./home.nix;
         }
       ];

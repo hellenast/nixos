@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, username, userDescription, hostname, ... }:
+{ config, pkgs, lib, inputs, username, userDescription, hostname, timeZone, defaultLocale, consoleKeyMap, primaryMonitor, secondaryMonitor, cursorTheme, ... }:
 
 let
   # regreet (below) picks sessions to launch from wayland-sessions .desktop
@@ -39,8 +39,8 @@ let
   # otherwise), `swaymsg exit` tears sway down and hands control back to
   # greetd, the same way cage tears down when its one wrapped app exits.
   greeterSwayConfig = pkgs.writeText "greeter-sway-config" ''
-    output DP-2 enable
-    output HDMI-A-1 disable
+    output ${primaryMonitor.output} enable
+    output ${secondaryMonitor.output} disable
 
     default_border none
     for_window [app_id=".*"] fullscreen enable
@@ -89,13 +89,13 @@ in
   networking.networkmanager.enable = true;
 
   # --- Time / locale ---
-  time.timeZone = "America/Sao_Paulo";
-  i18n.defaultLocale = "en_US.UTF-8";
+  time.timeZone = timeZone;
+  i18n.defaultLocale = defaultLocale;
 
   # TTY keymap to match the intl dead-key layout Hyprland uses (see
   # home.nix -> caelestia/hypr-user.lua). Only affects plain virtual
-  # consoles, not the graphical session.
-  console.keyMap = "us-acentos";
+  # consoles, not the graphical session. See variables.nix.
+  console.keyMap = consoleKeyMap;
 
   # --- Nix ---
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
@@ -145,7 +145,7 @@ in
     enable = true;
     cursorTheme = {
       package = pkgs.bibata-cursors;
-      name = "Bibata-Modern-Ice";
+      name = cursorTheme;
     };
     # regreet defaults to plain Adwaita, which (unlike the dark caelestia
     # theme everywhere else) renders as a light/white window — this is the

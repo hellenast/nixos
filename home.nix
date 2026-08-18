@@ -528,33 +528,11 @@ in
       transform = 3,
     })
 
-    -- Lock immediately on session start, pairing with greetd's auto-login:
-    -- the first thing I actually see is caelestia's own themed lock screen
-    -- instead of a bare desktop for a split second. caelestia-shell has
-    -- its own native Wayland lock screen built in — the dots don't even
-    -- vendor a hyprlock.conf — reached here via its own IPC target
-    -- (`caelestia-shell ipc call lock lock`) rather than the Hyprland
-    -- global the dots' own lock keybind uses (hl.dsp.global("caelestia:
-    -- lock")): confirmed live, after a reboot, that dispatching the
-    -- Hyprland global — whether via a raw `hyprctl dispatch` string
-    -- (broken syntax under this Hyprland version, same class of issue as
-    -- the screenshot-floating fix earlier) or the corrected
-    -- hl.dispatch(hl.dsp.global(...)) form — left `isLocked` true but
-    -- rendered no visible lock screen at all. The direct IPC call, tested
-    -- the same way, worked correctly.
-    --
-    -- Still needs the delay: a direct call in this same handler (same
-    -- tick) fires before the shell's finished initializing enough to
-    -- handle it. The dots' own execs.lua registers *its* "hyprland.start"
-    -- handler first (this file's `require("hypr-user")` loads after
-    -- `require("hyprland.execs")`), and that's the handler that spawns
-    -- `caelestia shell -d` in the first place — the shell needs real time
-    -- after that to initialize before anything dispatched at it does
-    -- something. `sleep` behind exec_cmd (same trick as the cursor fix
-    -- below) gives it that time.
+    -- No more locking on session start here — tuigreet (configuration.nix)
+    -- now handles auth at the actual entry point, before Hyprland even
+    -- starts, so a second lock screen immediately after logging in would
+    -- just be redundant.
     hl.on("hyprland.start", function()
-      hl.exec_cmd("sleep 2 && caelestia-shell ipc call lock lock")
-
       -- The dots' own execs.lua unconditionally runs
       -- `hyprctl setcursor sweet-cursors 24` in its own "hyprland.start"
       -- handler, which loads before this file — sweet-cursors isn't even

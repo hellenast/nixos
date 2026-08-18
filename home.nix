@@ -405,6 +405,8 @@ in
 
     vscodium  # code editor
 
+    bitwarden-desktop  # password manager desktop app
+
     # Discord client. Vencord's built in, so theming/plugins work without
     # extra setup beyond enabling the theme once in its own settings.
     vesktop

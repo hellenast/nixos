@@ -81,6 +81,7 @@
         ./media.nix
         ./dev.nix
         ./protonvpn.nix
+        ./tor.nix
 
         inputs.nix-flatpak.nixosModules.nix-flatpak
         inputs.nixvirt.nixosModules.default

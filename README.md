@@ -44,6 +44,9 @@ A KVM/QEMU/libvirt-managed Windows 10 VM ("dubbingai-win10"), declared via NixVi
 ### `protonvpn.nix`
 Per-app ProtonVPN split tunneling: a dedicated network namespace with its own WireGuard tunnel (via `wg-quick`), a `protonvpn-run` wrapper, and a "<Name> (VPN)" launcher for each app listed in the module's `apps` list — only those apps' traffic goes through the VPN, everything else keeps using the normal default route. See Manual Setup below for the one-time WireGuard config placement.
 
+### `tor.nix`
+System Tor daemon (client-only, exposing the standard local SOCKS proxy on `127.0.0.1:9050`) plus a "Vesktop (Tor)" launcher — a wrapper script + desktop item that starts Vesktop with `--proxy-server="socks5://127.0.0.1:9050"`, routing it (including DNS) through Tor. Used the same way as `protonvpn.nix` — to work around Discord's regional video-sharing block — but via Chromium's native `--proxy-server` flag rather than a routed VPN tunnel, since torsocks-style LD_PRELOAD wrapping doesn't work on Electron/Chromium's own network stack.
+
 ### `audio-routing.nix`
 A PipeWire virtual-mic (null sink + its paired monitor source), run as a systemd user service, used to feed the Windows VM's voice-changer output into any host app's mic input (Discord, games, etc.).
 

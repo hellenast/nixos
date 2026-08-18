@@ -92,6 +92,7 @@
         ./protonvpn.nix
         ./tor.nix
         ./secrets.nix
+        ./firmware.nix
 
         inputs.nix-flatpak.nixosModules.nix-flatpak
         inputs.nixvirt.nixosModules.default

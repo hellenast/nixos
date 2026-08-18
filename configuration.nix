@@ -80,23 +80,14 @@
     xwayland.enable = true;
   };
 
-  # greetd starts Hyprland straight for me, no tuigreet prompt and no
-  # password check of its own — the auth step just moves to caelestia's own
-  # lock screen at the very start of the session instead (see home.nix ->
-  # caelestia/hypr-user.lua, which locks on hyprland.start).
+  # tuigreet prompts for a password on every boot/logout before Hyprland
+  # ever starts — no more autologin, and no more caelestia locking the
+  # screen again immediately on session start (see home.nix ->
+  # caelestia/hypr-user.lua, that hyprland.start hook is gone now that this
+  # covers the same job at the actual entry point).
   services.greetd = {
     enable = true;
-    settings = {
-      initial_session = {
-        command = "start-hyprland";
-        user = username;
-      };
-      # Fallback if I ever log back out to a greeter (e.g. switching users)
-      default_session = {
-        command = "start-hyprland";
-        user = username;
-      };
-    };
+    settings.default_session.command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd start-hyprland";
   };
 
   # Portals: screen share, file pickers, etc. under Wayland.

@@ -93,6 +93,7 @@
         ./tor.nix
         ./secrets.nix
         ./firmware.nix
+        ./oom.nix
 
         inputs.nix-flatpak.nixosModules.nix-flatpak
         inputs.nixvirt.nixosModules.default

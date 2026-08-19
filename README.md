@@ -175,6 +175,7 @@ Editing an existing secret: `sops secrets/secrets.yaml` (needs `SOPS_AGE_KEY_FIL
 
 ### Windows VM / Dubbing AI (`windows-vm.nix`, `audio-routing.nix`)
 - Needs a Windows 10 ISO manually placed at `~/isos/Win10.iso` before the VM can boot for the first time.
+- After Windows is installed, I need to install SPICE Guest Tools inside the guest — it's what makes the QXL video device (`windows-vm.nix`) actually work instead of falling back to a slow generic VGA driver, and it's what gives me clipboard sharing and cursor integration via the `spicevmc` channel. Not something Nix can automate since it runs inside the guest.
 - The VM's disk (`/var/lib/libvirt/images/dubbingai-win10.qcow2`) is real, stateful data — not rebuilt by Nix. On a host reformat: restore it from a backup kept on a separate drive, or let the activation script create a blank disk and manually reinstall Windows + Dubbing AI from scratch.
 - If the physical mic ever changes, re-check its USB vendor/product ID with `lsusb` and update `micVendorId`/`micProductId`.
 - Routing audio actually requires, each time it's needed: inside the guest, turn on Dubbing AI's "Hear Myself" with output set to Speakers; on the host, route the VM's SPICE playback stream into `DubbingAI_Virtual_Mic` via `pavucontrol`'s Playback tab. The `audio-routing.nix` service already sets the remapped `DubbingAI_Mic` source as the system default input, so apps that just use "the default mic" (Sober, Zapzap, etc.) pick it up automatically — no per-app source selection needed.

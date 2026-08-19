@@ -426,10 +426,21 @@ in
     # has to be built into Thunar via programs.thunar.plugins
     # (configuration.nix) to actually be picked up, so Thunar itself also
     # lives there now, not as a plain package in this profile.
+    #
+    # engrampa, not xarchiver: thunar-archive-plugin doesn't just shell out
+    # to whatever's set as my default archive app — it only ships wrapper
+    # scripts (libexec/thunar-archive-plugin/*.tap) for a fixed short list
+    # of managers: ark, engrampa, file-roller. I had xarchiver here first
+    # since it's the lighter GTK option, but it's not on that list, so the
+    # plugin filtered it straight back out and every Compress/Extract just
+    # failed with "No suitable archive manager found" even though xarchiver
+    # itself worked fine standalone. engrampa is the lightest of the three
+    # the plugin actually supports, and it drives the same zip/unzip/p7zip
+    # below as its backend, so nothing else here needed to change.
     unzip          # extracts .zip
     zip            # creates .zip
     p7zip          # .7z and a bunch of other formats via 7z
-    xarchiver      # archive-manager backend the Thunar plugin calls out to
+    engrampa       # archive-manager backend the Thunar plugin calls out to
 
     zapzap  # WhatsApp desktop client
 

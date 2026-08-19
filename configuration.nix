@@ -256,8 +256,10 @@ in
   # plugin package to home.packages alongside a separately-installed Thunar
   # (as I used to do) doesn't work, since Thunar only scans THUNARX_DIRS
   # from its own wrapper, not an arbitrary sibling package in the profile.
-  # xarchiver (home.nix) is the actual archive-manager backend the plugin
-  # calls out to; zip/unzip/p7zip (home.nix) are the formats it can use.
+  # engrampa (home.nix) is the actual archive-manager backend the plugin
+  # calls out to — it has to be one of the few managers the plugin ships a
+  # wrapper script for (see home.nix for why that ruled out xarchiver);
+  # zip/unzip/p7zip (home.nix) are the formats it can use.
   programs.thunar = {
     enable = true;
     plugins = [ pkgs.thunar-archive-plugin ];

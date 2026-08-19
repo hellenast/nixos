@@ -14,7 +14,7 @@
   #   sudo install -D -m 0400 -o root -g root <age-key-file> /var/lib/sops-nix/key.txt
   # The matching public key (used in .sops.yaml's creation_rules, so `sops`
   # knows who to encrypt for) is:
-  #   age1tzkgflevfv75ljn9t4uldd2hxm6vvxusn3ha9kgn6fleempdx5zquckxpf
+  #   age1ujjr740z8pv7m8ue40gmjy72k6vt8ma0yr8haqppem7kfzfzqg5snlgps5
   # I re-encrypt secrets/secrets.yaml for a new key with `sops updatekeys`.
   sops.age.keyFile = "/var/lib/sops-nix/key.txt";
   sops.defaultSopsFile = ./secrets/secrets.yaml;

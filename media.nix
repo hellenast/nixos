@@ -1,18 +1,16 @@
 { config, pkgs, lib, username, ... }:
 
 {
-  # VLC (video + audio, default handler for both — see mimeApps below),
-  # Krita (image editing), Drawing (a lightweight GNOME paint-style app for
-  # quick crop/rotate/basic-brush edits — no Mono/.NET runtime pulled in,
-  # unlike Pinta, so it's a much smaller closure for something meant to
-  # stay minimal). nixpkgs' vlc bundles its own ffmpeg/libav build, so it
-  # already handles the common codecs (H.264/H.265/VP9/AV1, AAC/MP3/FLAC,
-  # ...) without extra packages.
+  # Drawing was chosen over Pinta since it doesn't pull in a Mono/.NET
+  # runtime, keeping its closure much smaller. nixpkgs' vlc bundles its own
+  # ffmpeg/libav build, so it already handles the common codecs
+  # (H.264/H.265/VP9/AV1, AAC/MP3/FLAC, ...) without extra packages.
   home-manager.users.${username} = {
     home.packages = with pkgs; [
-      vlc
-      krita
-      drawing
+      vlc # video + audio playback (default handler for both — see mimeApps below)
+      krita # image editing
+      drawing # lightweight GNOME paint-style app for quick crop/rotate/basic-brush edits
+      cheese # webcam snapshots/video and basic effects
     ];
 
     xdg.mimeApps = {

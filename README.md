@@ -163,8 +163,12 @@ Editing an existing secret: `sops secrets/secrets.yaml` (needs `SOPS_AGE_KEY_FIL
 4. Repeat 2–3 any time the watch is unpaired and re-paired.
 
 ### Spotify (`home.nix`)
-- Installed as a user-scope Flatpak so spicetify can patch it — log into Spotify normally on first launch.
+- Installed as a user-scope Flatpak so spicetify can patch it — log into Spotify normally on first launch. That first launch is also what creates `~/.var/app/com.spotify.Client/config/spotify/prefs`, which the next step needs to already exist.
+- One-time spicetify setup, after that first login (Nix can't do this for me — it's spicetify's own runtime state, not something home-manager writes): `spicetify config current_theme caelestia color_scheme caelestia prefs_path ~/.var/app/com.spotify.Client/config/spotify/prefs`, then `spicetify backup apply`. Skipping this leaves `current_theme`/`color_scheme` blank, so every later `spicetify apply` (including the postHook's) silently re-applies no theme at all — Spotify just never looks themed and nothing complains.
 - Live theme sync doesn't work under Flatpak (`spicetify watch` crashes outside its sandbox), so colors only update via a postHook script on scheme change — restart Spotify by hand to actually see the new theme.
+
+### Vesktop (`home.nix`)
+- caelestia writes the generated theme to `~/.config/vesktop/themes/caelestia.theme.css` on every scheme change (`enableDiscord` in `home.nix`), but Vencord never auto-enables a theme file just because it exists in that folder — it has to be turned on once, by hand, in Vesktop's Settings > Themes tab. Until then Vesktop just runs unthemed with no indication why.
 
 ### VSCodium Caelestia integration
 - The extension is installed once from a vendored `.vsix` and then left alone (so it can regenerate its own theme file without Nix stomping it every rebuild) — an actual extension version bump requires manually deleting the installed extension directory first so it reinstalls.

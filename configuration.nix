@@ -75,10 +75,10 @@ in
   # and compression means it holds more than its nominal size in actual
   # data. Given the kernel already prefers whichever swap device has the
   # higher priority, and zram's default priority (5) already beats the
-  # disk swap partition's (-2, unset in hardware-configuration.nix), this
-  # naturally becomes the first line of defense — the disk swap partition
-  # only gets touched if zram itself fills up too, which at 50% of 60GB
-  # RAM (the module's default, left as-is) is a lot of headroom.
+  # disk swapfile's (-2, unset in disko.nix), this naturally becomes the
+  # first line of defense — the disk swapfile only gets touched if zram
+  # itself fills up too, which at 50% of 60GB RAM (the module's default,
+  # left as-is) is a lot of headroom.
   zramSwap = {
     enable = true;
     algorithm = "zstd";

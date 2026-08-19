@@ -236,6 +236,20 @@ in
   # trash.
   services.gvfs.enable = true;
 
+  # --- Thunar + archive plugin ---
+  # Thunarx plugins (thunar-archive-plugin, which adds the right-click
+  # Compress.../Extract Here entries) only get picked up if Thunar itself is
+  # built with them via this module's `plugins` list — just adding the
+  # plugin package to home.packages alongside a separately-installed Thunar
+  # (as this used to do) doesn't work, since Thunar only scans THUNARX_DIRS
+  # from its own wrapper, not an arbitrary sibling package in the profile.
+  # xarchiver (home.nix) is the actual archive-manager backend the plugin
+  # calls out to; zip/unzip/p7zip (home.nix) are the formats it can use.
+  programs.thunar = {
+    enable = true;
+    plugins = [ pkgs.thunar-archive-plugin ];
+  };
+
   # --- Gaming: see gaming.nix (Steam, gamescope, gamemode) ---
 
   # --- Flatpak ---

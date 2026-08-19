@@ -55,6 +55,15 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Declarative disk partitioning (see disko.nix) — turns a from-scratch
+    # install into "run one command from the live ISO" instead of manually
+    # typing cryptsetup/mkfs/mount by hand. Only exercised during a reinstall
+    # (nixos-install), not on every-day nixos-rebuild switch.
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, caelestia-shell, caelestia-cli, caelestia-dots-src, zen-browser, ... } @ inputs: let
@@ -74,6 +83,7 @@
       specialArgs = { inherit inputs; } // vars;
       modules = [
         ./configuration.nix
+        ./disko.nix
         ./windows-vm.nix
         ./audio-routing.nix
         ./vr.nix
@@ -91,6 +101,7 @@
         inputs.nix-flatpak.nixosModules.nix-flatpak
         inputs.nixvirt.nixosModules.default
         inputs.sops-nix.nixosModules.sops
+        inputs.disko.nixosModules.disko
 
         home-manager.nixosModules.home-manager
         {

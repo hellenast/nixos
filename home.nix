@@ -52,8 +52,40 @@ let
   # symlinking it in on every rebuild the way the module's own `settings`
   # option would do it.
   caelestiaShellSettings = {
-    bar.status.showBattery = false;
     bar.scrollActions.brightness = false;
+    # bar.status.showBattery used to be the way to hide the battery icon,
+    # but caelestia-shell's C++ config schema (plugin/src/Caelestia/Config/
+    # barconfig.hpp) replaced that whole `status` object with a
+    # `statusIcons` list of {id, enabled} entries instead — an unrecognised
+    # `bar.status` key was exactly the "unknown config" notification I kept
+    # seeing. ConfigList reloads replace the entire list wholesale rather
+    # than merging by id, so every default entry has to be spelled out here
+    # even though only `battery` differs from its default.
+    bar.statusIcons = [
+      { id = "lockStatus"; enabled = true; }
+      { id = "audio"; enabled = true; }
+      { id = "microphone"; enabled = false; }
+      { id = "kbLayout"; enabled = false; }
+      { id = "network"; enabled = true; }
+      { id = "bluetooth"; enabled = true; }
+      { id = "battery"; enabled = false; }
+    ];
+    # Same {id, enabled} list shape as statusIcons above, this time for
+    # which modules show in the bar at all — `power` is the energy-profile
+    # (performance/balanced/power-saver) widget I don't want, so it's the
+    # only entry flipped off here, full default list spelled out for the
+    # same reload-replaces-wholesale reason.
+    bar.entries = [
+      { id = "logo"; enabled = true; }
+      { id = "workspaces"; enabled = true; }
+      { id = "spacer"; enabled = true; }
+      { id = "activeWindow"; enabled = true; }
+      { id = "spacer"; enabled = true; }
+      { id = "tray"; enabled = true; }
+      { id = "clock"; enabled = true; }
+      { id = "statusIcons"; enabled = true; }
+      { id = "power"; enabled = false; }
+    ];
     osd.enableBrightness = false;
     # Both of these otherwise default to a locale-based guess (see
     # ServiceConfig in caelestia-shell's own C++ source) rather than a

@@ -425,14 +425,14 @@ in
     adw-gtk3
     papirus-folders
 
-    # Archive support
+    # Archive support. thunar-archive-plugin itself is NOT listed here — it
+    # has to be built into Thunar via programs.thunar.plugins
+    # (configuration.nix) to actually be picked up, so Thunar itself also
+    # lives there now, not as a plain package in this profile.
     unzip          # extracts .zip
     zip            # creates .zip
     p7zip          # .7z and a bunch of other formats via 7z
-    xarchiver      # lightweight GUI archive manager Thunar can call out to
-    thunar-archive-plugin  # lets Thunar create/extract archives from its own right-click menu
-
-    thunar  # file manager
+    xarchiver      # archive-manager backend the Thunar plugin calls out to
 
     zapzap  # WhatsApp desktop client
 

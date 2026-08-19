@@ -1,5 +1,5 @@
 keys:
-  - &host_hyena age1tzkgflevfv75ljn9t4uldd2hxm6vvxusn3ha9kgn6fleempdx5zquckxpf
+  - &host_hyena age1ujjr740z8pv7m8ue40gmjy72k6vt8ma0yr8haqppem7kfzfzqg5snlgps5
 
 creation_rules:
   - path_regex: secrets/secrets\.yaml$

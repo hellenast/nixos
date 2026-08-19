@@ -2,7 +2,7 @@
 
 <img width="2560" height="1440" alt="Screenshot_2026-08-17_14-31-32" src="https://github.com/user-attachments/assets/b71220f4-7a07-47f7-8b13-44e40ff8364f" />
 
-Personal NixOS + Hyprland + [caelestia-shell](https://github.com/caelestia-dots/shell) flake config, built to be forkable — everything specific to this person's machine (username, hostname, locale, monitor layout, cursor theme) lives in one file, `variables.nix`. Declarative except for a handful of things noted below that genuinely can't be (accounts, pairing, stateful data).
+My personal NixOS + Hyprland + [caelestia-shell](https://github.com/caelestia-dots/shell) flake config, built to be forkable — everything specific to my machine (username, hostname, locale, monitor layout, cursor theme) lives in one file, `variables.nix`. It's declarative except for a handful of things noted below that genuinely can't be (accounts, pairing, stateful data).
 
 ## Using this on your own machine
 
@@ -26,16 +26,16 @@ The `mkdir`/`cp` at the front handles `secrets/secrets.yaml` (see `secrets.nix`)
 ## Files
 
 ### `variables.nix`
-Single source of truth for everything specific to this person/machine: `username`/`userDescription`/`hostname`, timezone/locale/console keymap, Hyprland keyboard layout/variant, monitor names + layout (`primaryMonitor`/`secondaryMonitor`), and cursor theme/size. Threaded into every other module as `specialArgs` via `flake.nix`, so adapting this repo to a different person/machine is (mostly) a one-file edit.
+My single source of truth for everything specific to my machine: `username`/`userDescription`/`hostname`, timezone/locale/console keymap, Hyprland keyboard layout/variant, monitor names + layout (`primaryMonitor`/`secondaryMonitor`), and cursor theme/size. It's threaded into every other module as `specialArgs` via `flake.nix`, so adapting this repo to a different person/machine is (mostly) a one-file edit.
 
 ### `flake.nix`
 Entry point. Pulls in nixpkgs-unstable, home-manager, nix-flatpak, caelestia-shell/cli, the caelestia-dots repo (vendored as a plain source, not a flake — pieces of it get patched/re-sourced directly in `home.nix`), zen-browser, NixVirt, sops-nix, and disko (disk partitioning, see `disko.nix`). Imports `variables.nix` and spreads it into `specialArgs`/`extraSpecialArgs` for every module below.
 
 ### `configuration.nix`
-Core system config: systemd-boot/UEFI, NetworkManager, timezone/locale, AMD graphics, Hyprland, memory tuning (lowered `vm.swappiness` + zram as compressed RAM-backed swap, ahead of the disk swap partition in `hardware-configuration.nix`), xdg-desktop-portals, polkit agent, sleep/suspend disabled outright, PipeWire audio, fonts, Bluetooth, gvfs (needed for Thunar's trash support), system-wide Flatpak (Sober/Roblox, with weekly auto-updates), the user account itself, and base CLI tools (git, curl, wget, usbutils). The login screen itself is also here: greetd running regreet (a themed GTK greeter) inside a minimal, single-purpose sway session — sway specifically because it can target an output by name, which is what actually gets the greeter onto the main monitor (`variables.nix` -> `primaryMonitor`) instead of spanning/landing on the wrong one; regreet's own default (cage) can't do that. No autologin — every boot/logout prompts for a password before Hyprland starts.
+My core system config: systemd-boot/UEFI, a systemd-based initrd (needed for Plymouth to theme the LUKS unlock screen — the classic initrd shows that prompt as plain text before Plymouth ever starts), a Plymouth splash/unlock screen colored to match caelestia-shell's current "hard" dark scheme, NetworkManager, timezone/locale, AMD graphics, Hyprland, memory tuning (lowered `vm.swappiness` + zram as compressed RAM-backed swap, ahead of the disk swapfile in `disko.nix`), xdg-desktop-portals, polkit agent, sleep/suspend disabled outright, PipeWire audio, fonts, Bluetooth, gvfs (needed for Thunar's trash support), system-wide Flatpak (Sober/Roblox, with daily auto-updates), the user account itself, and base CLI tools (git, curl, wget, usbutils). The login screen itself is also here: greetd autologs straight into Hyprland, no greeter prompt of its own — LUKS already gates access at boot, so a second password prompt on top of that would just be redundant.
 
 ### `home.nix`
-The bulk of the actual desktop environment, managed via home-manager. Caelestia shell + CLI configuration (theming toggles, scratchpad apps for btop/Discord/Spotify), Zen as the default browser, Kitty as the terminal (with a custom font + transparency), the app package list (Vesktop, Spicetify, VSCodium, Thunar + archive plugins, screenshot tooling, etc.), the vendored Hyprland config from the dots plus a `hypr-user.lua` override file (keyboard layout, monitor layout, cursor theme, custom screenshot keybinds, kitty as the default terminal instead of foot — all read from `variables.nix`), vendored fish/spicetify/Thunar/VSCodium configs, and a patched copy of the dots' `rules.lua` (excludes Vesktop from a scratchpad workspace group it shouldn't be in). Single-monitor setups: point `secondaryMonitor.output` in `variables.nix` at the same name as `primaryMonitor.output` and drop the second `hl.monitor` block here.
+The bulk of my actual desktop environment, managed via home-manager. Caelestia shell + CLI configuration (theming toggles, scratchpad apps for btop/Discord/Spotify), Zen as the default browser, Kitty as the terminal (with a custom font + transparency), the app package list (Vesktop, Spicetify, VSCodium, Thunar + archive plugins, screenshot tooling, etc.), the vendored Hyprland config from the dots plus a `hypr-user.lua` override file (keyboard layout, monitor layout, and cursor theme, all read from `variables.nix`; plus hardcoded custom screenshot keybinds and kitty as the default terminal instead of foot), vendored fish/spicetify/Thunar/VSCodium configs, and a patched copy of the dots' `rules.lua` (excludes Vesktop from a scratchpad workspace group it shouldn't be in). Single-monitor setups: point `secondaryMonitor.output` in `variables.nix` at the same name as `primaryMonitor.output` and drop the second `hl.monitor` block here.
 
 ### `media.nix`
 VLC (video/audio, set as the default app for common media MIME types), Krita, and Drawing (lightweight image crop/rotate/annotate).
@@ -44,7 +44,7 @@ VLC (video/audio, set as the default app for common media MIME types), Krita, an
 Docker (installed but not started at boot — starts on demand the first time `docker` is actually used), the user added to the `docker` group, a Rancher server container for local Kubernetes cluster management (also not auto-started — `systemctl start docker-rancher` when wanted), and CLI/GUI dev tooling: kubectl, helm, the `rancher` CLI, docker-compose/buildx, Cypress (E2E testing), Beekeeper Studio (DB client), Insomnia (API client), plus node/bun/pnpm for frontend (React/Next.js) work. No `services.postgresql` — Postgres for these projects runs per-project via docker-compose instead.
 
 ### `amazfit.nix`
-Amazfish (Flatpak) as the companion app for an Amazfit GTR2e watch, a custom-packaged `huami-token` CLI, and a `amazfit-get-key.sh` helper script that fetches the watch's Bluetooth pairing key from Huami/Zepp's servers. See Manual Setup below — this one has real interactive steps every time the watch is re-paired.
+Amazfish (Flatpak) as the companion app for my Amazfit GTR2e watch, a custom-packaged `huami-token` CLI, and an `amazfit-get-key.sh` helper script that fetches the watch's Bluetooth pairing key from Huami/Zepp's servers. See Manual Setup below — this one has real interactive steps every time I re-pair the watch.
 
 ### `gaming.nix`
 Steam (Remote Play + dedicated-server firewall rules, gamescope session for fullscreen game launches), gamescope itself, and GameMode for automatic per-game performance tweaks.
@@ -53,7 +53,7 @@ Steam (Remote Play + dedicated-server firewall rules, gamescope session for full
 ALVR — streams SteamVR content to a standalone headset (Quest, etc.) over Wi-Fi. Just the server + firewall ports; headset pairing itself is outside Nix.
 
 ### `windows-vm.nix`
-A KVM/QEMU/libvirt-managed Windows 10 VM ("dubbingai-win10"), declared via NixVirt, with USB mic passthrough by vendor/product ID and SPICE for display/audio. Exists specifically to run a Windows-only voice-changer app ("Dubbing AI") that needs real kernel-mode drivers. The VM's disk is genuinely stateful (the actual Windows install lives there, not something Nix can rebuild) — see Manual Setup.
+A KVM/QEMU/libvirt-managed Windows 10 VM ("dubbingai-win10"), declared via NixVirt, with USB mic passthrough by vendor/product ID and SPICE for display/audio. I run this specifically for a Windows-only voice-changer app ("Dubbing AI") that needs real kernel-mode drivers. The VM's disk is genuinely stateful (the actual Windows install lives there, not something Nix can rebuild) — see Manual Setup.
 
 ### `protonvpn.nix`
 Per-app ProtonVPN split tunneling: a dedicated network namespace with its own WireGuard tunnel (via `wg-quick`), a `protonvpn-run` wrapper, and a "<Name> (VPN)" launcher for each app listed in the module's `apps` list — only those apps' traffic goes through the VPN, everything else keeps using the normal default route. See Manual Setup below for the one-time WireGuard config placement.
@@ -71,49 +71,72 @@ System-level plumbing caelestia-shell's dynamic theming needs but that home-mana
 [sops-nix](https://github.com/Mic92/sops-nix), decrypting `secrets/secrets.yaml` (age-encrypted, safe to commit — see `.sops.yaml`) into root-only files under `/run/secrets/` at activation time. Currently holds the ProtonVPN WireGuard config that `protonvpn.nix` reads back out. See Manual Setup below for the one-time age key placement a fresh machine needs.
 
 ### `firmware.nix`
-`services.fwupd.enable = true` — checks the LVFS for firmware updates (BIOS/UEFI, SSDs, supported peripherals). Nothing automatic: run `fwupdmgr refresh && fwupdmgr update` by hand when you want to check.
+`services.fwupd.enable = true` — checks the LVFS for firmware updates (BIOS/UEFI, SSDs, supported peripherals). Nothing automatic: I run `fwupdmgr refresh && fwupdmgr update` by hand whenever I want to check.
 
 ### `oom.nix`
 `earlyoom`, tuned to kill the worst offending process once free memory drops under 5% and free swap under 10%, before the kernel's own OOM killer would even engage (by which point the system is usually already frozen). Notifies via `libnotify` when it kills something. Complements the zram/swappiness tuning in `configuration.nix`.
 
 ### `hardware-configuration.nix`
-Machine-specific initrd kernel modules and CPU microcode only — **not portable**, a different machine needs `nixos-generate-config`'s own output for this part. Disk layout (`fileSystems`, `swapDevices`, LUKS unlocking) intentionally isn't here anymore; that's `disko.nix` now.
+Machine-specific initrd kernel modules and CPU microcode only — **not portable**; a different machine needs `nixos-generate-config`'s own output for this part. Disk layout (`fileSystems`, `swapDevices`, LUKS unlocking) intentionally isn't here anymore; that's `disko.nix` now.
 
 ### `disko.nix`
 Declarative full-disk layout, applied once via [disko](https://github.com/nix-community/disko) during a from-scratch install instead of partitioning/formatting by hand: an unencrypted EFI System Partition, then a single LUKS2-encrypted partition holding a btrfs volume with the root/home/nix/log/persist subvolumes plus a swapfile subvolume — so everything except `/boot` sits behind one passphrase, entered once at every boot. See "Reinstalling with full-disk encryption" below. **Not portable as-is** — it hardcodes this machine's disk by `/dev/disk/by-id`.
 
 ## Reinstalling with full-disk encryption
 
-This machine was originally installed without disk encryption; `disko.nix` describes the encrypted layout it should have going forward. Since LUKS reformats the partition it lives on, applying it means backing up and reinstalling — there's no in-place upgrade path. Once done, this whole procedure only needs repeating if the disk itself is ever wiped again.
+My machine was originally installed without disk encryption; `disko.nix` describes the encrypted layout it should have going forward. Since LUKS reformats the partition it lives on, applying it means backing up and reinstalling — there's no in-place upgrade path. Once done, this whole procedure only needs repeating if the disk itself is ever wiped again.
 
-1. **Back up everything.** `/home` and `/persist` hold real data; `/var/lib/libvirt/images` (the Windows VM disk, see `windows-vm.nix`) is large stateful data Nix doesn't manage and won't recreate — copy it somewhere separate if it's worth keeping, or plan to reinstall Windows from scratch.
+One wrinkle either way: `secrets.nix`/`protonvpn.nix` need an age private key at `/var/lib/sops-nix/key.txt` to decrypt `secrets/secrets.yaml` (see "Secrets" below), and a from-scratch install has no such key yet. Left enabled, `nixos-install` fails during activation trying to decrypt a secret it has no key for. Both paths below deal with this by disabling those modules for the initial install, then re-enabling them afterward once the key is back in place.
+
+1. **Back up everything.** `/home` and `/persist` hold real data; `/var/lib/libvirt/images` (the Windows VM disk, see `windows-vm.nix`) is large stateful data Nix doesn't manage and won't recreate; and `/var/lib/sops-nix/key.txt` is my age private key — without a copy of it, `secrets/secrets.yaml` is unreadable after reinstall and I have to fall back to generating a fresh keypair and re-encrypting (see "Secrets" below). Copy all of these somewhere separate if they're worth keeping, or plan to reinstall Windows from scratch / regenerate the key.
 2. Boot the machine from a [NixOS live ISO](https://nixos.org/download) (USB installer) with network access.
-3. Confirm the disk id `disko.nix` targets is still correct on this exact drive: `ls /dev/disk/by-id/ | grep nvme` and compare against the `device` line in `disko.nix`. Update it first if it's changed.
-4. Clone this repo into the live environment (e.g. `nix-shell -p git --run "git clone <this repo's url> ~/nixos"`).
-5. Partition, LUKS-format, create the btrfs subvolumes, and mount everything to `/mnt` in one step:
+
+### The easy way: `fresh-install.sh`
+
+I use this script for everything from here on, instead of doing it by hand. It finds a USB stick with this repo on it, copies it to `/root/nixos-config`, checks the disk id `disko.nix` targets against the actual hardware (prompting me to fix it first if it's drifted), comments out `./secrets.nix`, `./protonvpn.nix`, and the sops-nix module in that copy (the age-key problem above), then runs disko and `nixos-install`, prompts me to set the user password, and copies the patched config into `/mnt/etc/nixos`.
+
+```
+sudo bash fresh-install.sh
+```
+
+It prompts for confirmation before wiping the target disk. Once it's done and I've rebooted:
+
+1. Restore `/var/lib/sops-nix/key.txt` from backup (or generate a fresh keypair and `sops updatekeys` — see "Secrets" below).
+2. Uncomment `./secrets.nix`, `./protonvpn.nix`, and `inputs.sops-nix.nixosModules.sops` back in `/etc/nixos/flake.nix`.
+3. `sudo nixos-rebuild switch --flake /etc/nixos#hyena`.
+4. Restore `/home`, `/persist`, and (if kept) the Windows VM disk from the backup made in step 1 above.
+
+### The manual way
+
+Same result, one step at a time — useful if I want to see/adjust each step, or the script doesn't apply (different disk, different flake target name).
+
+1. Clone this repo into the live environment (e.g. `nix-shell -p git --run "git clone <this repo's url> ~/nixos"`).
+2. Confirm the disk id `disko.nix` targets is still correct on this exact drive: `ls /dev/disk/by-id/ | grep nvme` and compare against the `device` line in `disko.nix`. Update it first if it's changed.
+3. Partition, LUKS-format, create the btrfs subvolumes, and mount everything to `/mnt` in one step:
    ```
    sudo nix run github:nix-community/disko -- --mode disko --flake ~/nixos#<hostname>
    ```
    This prompts for a LUKS passphrase (twice, to confirm) — pick one you'll be typing on every boot from now on.
-6. Copy `secrets/secrets.yaml` into place the same way the normal deploy does (see Deploying above), but rooted at `/mnt`:
+4. If I have my old age key backed up, restore it now so secrets decrypt on first boot: `sudo install -D -m 0400 -o root -g root <age-key-file> /mnt/var/lib/sops-nix/key.txt`. If not, comment out `./secrets.nix`, `./protonvpn.nix`, and `inputs.sops-nix.nixosModules.sops` in `~/nixos/flake.nix` — the same patch `fresh-install.sh` applies — and plan to re-enable them after first boot per the "easy way" steps above.
+5. Copy `secrets/secrets.yaml` into place the same way the normal deploy does (see Deploying above), but rooted at `/mnt` (skip this if I disabled `secrets.nix` in step 4):
    ```
    sudo mkdir -p /mnt/etc/nixos/secrets && sudo cp ~/nixos/secrets/secrets.yaml /mnt/etc/nixos/secrets/secrets.yaml && sudo cp ~/nixos/*.nix /mnt/etc/nixos/
    ```
-7. Install:
+6. Install:
    ```
    sudo nixos-install --root /mnt --flake /mnt/etc/nixos#<hostname>
    ```
-   `nixos-install` will ask you to set a root password — anything works, it's a fallback console login, not what you'll use day to day (regreet/greetd handle normal login, see `configuration.nix`).
-8. Reboot, remove the USB. The firmware boots the plaintext ESP, systemd-boot loads the kernel/initrd, and the initrd is what actually prompts for the LUKS passphrase before anything else can start.
-9. Restore `/home`, `/persist`, and (if kept) the Windows VM disk from the backup made in step 1.
+   `nixos-install` will ask me to set a root password — anything works, it's a fallback console login, not what I use day to day (greetd autologs into Hyprland, see `configuration.nix`).
+7. Reboot, remove the USB. The firmware boots the plaintext ESP, systemd-boot loads the kernel/initrd, and the initrd is what actually prompts for the LUKS passphrase before anything else can start.
+8. Restore `/home`, `/persist`, and (if kept) the Windows VM disk from the backup made in step 1 above.
 
 No manual `cryptsetup`/`mkfs`/subvolume/`mount` commands anywhere in this — `disko.nix` is the single source of truth for the disk layout, same as `variables.nix` is for identity/preferences.
 
 ## Staying updated
 
-Flatpak apps (Sober, Spotify) update themselves on a weekly systemd timer — `services.flatpak.update.auto`, no action needed. One caveat: an update to Spotify overwrites spicetify's in-place patch until something re-applies it, which happens somewhat naturally (`caelestia-spotify-resync.sh` runs `spicetify apply` on every theme/scheme change) but isn't instant — if Spotify looks unthemed right after an update, change the wallpaper once or run `spicetify apply` by hand.
+Flatpak apps update themselves via `services.flatpak.update.auto`, no action needed from me — Sober on a daily systemd timer (`configuration.nix`, plus a same-day catch-up on every boot), Spotify on a weekly one (`home.nix`, user-scope). One caveat: an update to Spotify overwrites spicetify's in-place patch until something re-applies it, which happens somewhat naturally (`caelestia-spotify-resync.sh` runs `spicetify apply` on every theme/scheme change) but isn't instant — if Spotify looks unthemed right after an update, I change the wallpaper once or run `spicetify apply` by hand.
 
-Everything else (nixpkgs, home-manager, caelestia-shell/cli, zen-browser, NixVirt) is pinned in `flake.lock` and does *not* auto-update — a bad bump is the kind of thing worth reviewing before committing to, and deploying needs an interactive `sudo` password regardless. Run `update-flake.sh` to refresh `flake.lock` and see what changed (shows a `git diff` if the repo is under git), then deploy the usual way once you've looked it over (see Deploying above):
+Everything else (nixpkgs, home-manager, caelestia-shell/cli, zen-browser, NixVirt) is pinned in `flake.lock` and does *not* auto-update — a bad bump is the kind of thing worth reviewing before committing to, and deploying needs an interactive `sudo` password regardless. I run `update-flake.sh` to refresh `flake.lock` and see what changed (shows a `git diff` if the repo is under git), then deploy the usual way once I've looked it over (see Deploying above):
 ```
 sudo mkdir -p /etc/nixos/secrets && sudo cp ~/nixos/secrets/secrets.yaml /etc/nixos/secrets/secrets.yaml && sudo cp ~/nixos/*.nix /etc/nixos/ && cd /etc/nixos && sudo nixos-rebuild switch --flake .#
 ```
@@ -126,7 +149,7 @@ Things a plain `nixos-rebuild switch` can't do for you — either because they'r
 - Regenerate `hardware-configuration.nix` for the actual hardware (`nixos-generate-config`).
 - Update `variables.nix` — at minimum `username`/`userDescription`/`hostname`; also monitor names/layout and cursor theme if this machine's setup differs (see "Using this on your own machine" above).
 - Log out and back in (or reboot) once after the first deploy — group memberships (`docker`, `libvirtd`, `wheel`, `video`, `audio`) only take effect on next login, not immediately after `nixos-rebuild switch`.
-- Secrets (`secrets.nix`) won't decrypt on a machine that's never seen the age private key before — see the "Secrets" section below, this needs doing *before* the first `nixos-rebuild switch` that references a `sops.secrets.*` value (currently just ProtonVPN).
+- Secrets (`secrets.nix`) won't decrypt on a machine that's never seen the age private key before — see the "Secrets" section below. That needs doing *before* the first `nixos-rebuild switch` that references a `sops.secrets.*` value (currently just ProtonVPN).
 
 ### Secrets (`secrets.nix`)
 `secrets/secrets.yaml` is encrypted for one age public key (declared in `.sops.yaml`) and is safe to have in a public repo — only the matching private key can decrypt it, and that key never touches this repo. Decryption happens at system activation, so the private key has to already be on disk as `/var/lib/sops-nix/key.txt` (root-only, `0400`) *before* the first rebuild that needs it — Nix can't put it there for you, same reasoning as the old ProtonVPN file used to be manual. On a new machine (or if the key is ever lost): generate a fresh age keypair, install the private half at that path, then re-encrypt `secrets/secrets.yaml` for the new public key with `sops updatekeys` (after updating `.sops.yaml` to match) so the new machine can actually read it.

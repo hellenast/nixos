@@ -118,10 +118,11 @@ let
   '';
 in
 {
-  # KVM/QEMU + libvirt, for running Windows apps (Dubbing AI) that need real
-  # kernel-mode drivers Wine can't provide. virt-manager gives me a GUI to
-  # create/manage the VM; SPICE handles audio+display passthrough without
-  # needing full GPU passthrough (VFIO) for something like a voice changer.
+  # KVM/QEMU + libvirt, for running Windows apps (Dubbing AI) that need
+  # real kernel-mode drivers Wine can't provide. virt-manager gives me a
+  # GUI to create/manage the VM; SPICE handles audio+display passthrough
+  # without needing full GPU passthrough (VFIO) for something like a voice
+  # changer.
   virtualisation.libvirtd = {
     enable = true;
     qemu = {

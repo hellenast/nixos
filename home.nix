@@ -3,17 +3,18 @@
 let
   dots = inputs.caelestia-dots-src;
 
-  # The VSCodium theme extension ships as a versioned .vsix inside the dots
-  # repo, so I find it by suffix instead of hardcoding a version I'd have to
-  # keep bumping by hand. Same for the extension's own install directory
-  # name, which I need later to check whether it's already installed.
+  # The VSCodium theme extension ships as a versioned .vsix file inside the
+  # dots repo, so I find it by suffix instead of hardcoding a version I'd
+  # have to keep bumping by hand. Same for the extension's own install
+  # directory name, which I need later to check whether it's already
+  # installed.
   vscodeIntegrationDir = "${dots}/vscode/caelestia-vscode-integration";
   vscodeIntegrationVsixName = lib.findFirst (n: lib.hasSuffix ".vsix" n) null (builtins.attrNames (builtins.readDir vscodeIntegrationDir));
   vscodeIntegrationVsix = "${vscodeIntegrationDir}/${vscodeIntegrationVsixName}";
   vscodeIntegrationExtensionDir = "soramanew.${lib.removeSuffix ".vsix" vscodeIntegrationVsixName}";
 
-  # Custom fastfetch logo — a small horned/winged ASCII figure, swapped in
-  # for the default NixOS pixel-art logo. fastfetch runs with no other
+  # My custom fastfetch logo — a small horned/winged ASCII figure, swapped
+  # in for the default NixOS pixel-art logo. I run fastfetch with no other
   # custom config (just its own built-in module list), so this only needs
   # to override "logo"; everything else stays default.
   demonLogo = ''
@@ -47,25 +48,25 @@ let
   '';
 
   # Initial content for ~/.config/caelestia/shell.json — see
-  # seedCaelestiaShellConfig below for why this is seeded once instead of
-  # symlinked in on every rebuild the way the module's own `settings` option
-  # would do it.
+  # seedCaelestiaShellConfig below for why I seed this once instead of
+  # symlinking it in on every rebuild the way the module's own `settings`
+  # option would do it.
   caelestiaShellSettings = {
     bar.status.showBattery = false;
     bar.scrollActions.brightness = false;
     osd.enableBrightness = false;
     # Both of these otherwise default to a locale-based guess (see
     # ServiceConfig in caelestia-shell's own C++ source) rather than a
-    # fixed value — Celsius and 24-hour time regardless of locale.
+    # fixed value — I want Celsius and 24-hour time regardless of locale.
     services.useFahrenheit = false;
     services.useTwelveHourClock = false;
   };
   caelestiaShellSettingsFile = pkgs.writeText "caelestia-shell-seed.json" (builtins.toJSON caelestiaShellSettings);
 
   # Thunar's "Open Terminal Here" action, vendored from the dots but with
-  # `foot` swapped for `kitty` (see xdg.configFile."Thunar" below for why
-  # this is listed as its own file instead of just pointing at
-  # `${dots}/thunar` wholesale like the other vendored configs).
+  # `foot` swapped for `kitty` (see xdg.configFile."Thunar" below for why I
+  # list this as its own file instead of just pointing at `${dots}/thunar`
+  # wholesale like the other vendored configs).
   thunarUcaKitty = pkgs.writeText "uca.xml" ''
     <?xml version="1.0" encoding="UTF-8"?>
     <actions>
@@ -88,32 +89,32 @@ let
   # "+communication_app", and that tag's own rule assigns
   # `workspace = "special:communication"` (a special, screen-covering
   # workspace) — applied at window-creation time, before any later,
-  # separately-loaded override rule gets a chance to affect it (confirmed
-  # live: a "-communication_app" removal rule in hypr-user.lua did clear
-  # the tag, per `hyprctl clients -j`, but the window still landed on the
-  # special workspace regardless — the workspace decision had already been
-  # made). So this has to be fixed at the source instead of overridden
+  # separately-loaded override rule gets a chance to affect it. I confirmed
+  # this live: a "-communication_app" removal rule in hypr-user.lua did
+  # clear the tag, per `hyprctl clients -j`, but the window still landed on
+  # the special workspace regardless — the workspace decision had already
+  # been made. So I have to fix this at the source instead of overriding it
   # after the fact.
   #
   # A more-specific xdg.configFile entry layered on top of the recursive
   # "hypr" source (the way thunarUcaKitty overrides just one file inside
-  # the recursively-sourced Thunar dir) does NOT work here, confirmed by
-  # building the actual home-manager generation and checking the result:
-  # rules.lua still symlinked straight to the unpatched dots source — the
-  # recursive directory's own per-file symlinking wins over a same-path
-  # override, unlike Thunar's directory (which is sourced as two disjoint,
-  # non-recursive per-file entries instead, so there's no overlap to lose).
-  # So instead, this builds one patched copy of the whole hypr tree via
-  # runCommand, and xdg.configFile."hypr" below sources *that* instead of
-  # ${dots}/hypr directly — a single, unambiguous source, no overlapping
-  # entries. The substitution itself is still a targeted string replace on
-  # the live dots source (not a duplicated copy of the whole 200+ line
-  # file), so it stays in sync with upstream changes to everything else in
-  # rules.lua. The original array has "whatsapp" as its own separate
-  # match entry, untouched by this — only "discord|equibop|vesktop" is
-  # patched, so discord/equibop keep the scratchpad behavior as part of
-  # that string, whatsapp keeps it too via its own untouched entry, and
-  # vesktop alone is excluded.
+  # the recursively-sourced Thunar dir) does NOT work here — I confirmed
+  # this by building the actual home-manager generation and checking the
+  # result: rules.lua was still symlinked straight to the unpatched dots
+  # source. The recursive directory's own per-file symlinking wins over a
+  # same-path override, unlike Thunar's directory (which I source as two
+  # disjoint, non-recursive per-file entries instead, so there's no overlap
+  # to lose). So instead, this builds one patched copy of the whole hypr
+  # tree via runCommand, and xdg.configFile."hypr" below sources *that*
+  # instead of ${dots}/hypr directly — a single, unambiguous source, no
+  # overlapping entries. The substitution itself is still a targeted
+  # string replace on the live dots source (not a duplicated copy of the
+  # whole 200+ line file), so it stays in sync with upstream changes to
+  # everything else in rules.lua. The original array has "whatsapp" as its
+  # own separate match entry, untouched by this — only
+  # "discord|equibop|vesktop" is patched, so discord/equibop keep the
+  # scratchpad behavior as part of that string, whatsapp keeps it too via
+  # its own untouched entry, and vesktop alone is excluded.
   hyprDotsPatched = pkgs.runCommand "hypr-dots-patched" { } ''
     cp -r --no-preserve=mode ${dots}/hypr $out
     cp ${
@@ -143,7 +144,7 @@ in
   # and creates the actual folders. I need this specifically because a few
   # apps (caelestia's wallpaper picker included) fall back to Qt/XDG's
   # standard Pictures location when nothing overrides it, and that lookup
-  # silently breaks without this file existing at all.
+  # silently breaks without this file existing.
   xdg.userDirs = {
     enable = true;
     createDirectories = true;
@@ -215,10 +216,10 @@ in
   # including `maximized`, and re-requests that state on every launch. On
   # Hyprland that request doesn't play well with tiling — it visually takes
   # over the screen instead of snapping into the layout like other tiled
-  # windows. Vesktop rewrites this file on every close, re-setting
-  # maximized:true if that's how it was left, so a one-time fix wouldn't
-  # stick — this idempotently flips just that one field back on every
-  # activation instead, leaving the rest of the file untouched.
+  # windows do for me. Vesktop rewrites this file on every close, re-
+  # setting maximized:true if that's how it was left, so a one-time fix
+  # wouldn't stick — this idempotently flips just that one field back on
+  # every activation instead, leaving the rest of the file untouched.
   home.activation.unmaximizeVesktop = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     dest="$HOME/.config/vesktop/state.json"
     if [ -e "$dest" ]; then
@@ -259,8 +260,8 @@ in
   };
 
   # --- Caelestia shell + CLI ---
-  # This is the actual desktop shell (bar, launcher, lock screen, wallpaper
-  # picker, notifications...) plus the CLI that drives its dynamic theming.
+  # My actual desktop shell (bar, launcher, lock screen, wallpaper picker,
+  # notifications...) plus the CLI that drives its dynamic theming.
   programs.caelestia = {
     enable = true;
     cli.enable = true;
@@ -400,8 +401,7 @@ in
     fastfetch  # the system-info banner shown on shell startup (custom logo, see above)
     btop       # interactive process/resource monitor, backs the sysmon scratchpad
 
-    # Bibata cursor theme binary — wired up via home.pointerCursor above.
-    bibata-cursors
+    bibata-cursors  # cursor theme binary, wired up via home.pointerCursor above
 
     vscodium  # code editor
 
@@ -409,12 +409,9 @@ in
 
     # Discord client. Vencord's built in, so theming/plugins work without
     # extra setup beyond enabling the theme once in its own settings.
-    vesktop
+    vesktop  # Discord client
 
-    # Drives the caelestia Spicetify theme. Spotify itself comes from
-    # Flatpak (above), not nixpkgs, specifically so this has something
-    # writable to patch.
-    spicetify-cli
+    spicetify-cli  # patches Spotify with the caelestia theme (Spotify itself comes from Flatpak, below, so this has something writable to patch)
 
     # adw-gtk3 is the Adwaita-based GTK3 theme whose symbolic colours
     # (accent_color, window_bg_color, ...) caelestia's gtk.css template
@@ -422,8 +419,8 @@ in
     # to actually restyle. papirus-folders is the tool that recolors the
     # Papirus folder icons (see seedPapirusIcons above for the setup that
     # makes it able to run at all).
-    adw-gtk3
-    papirus-folders
+    adw-gtk3         # Adwaita-based GTK3 theme, restyled by caelestia's gtk.css
+    papirus-folders  # recolors Papirus folder icons on every theme switch
 
     # Archive support. thunar-archive-plugin itself is NOT listed here — it
     # has to be built into Thunar via programs.thunar.plugins
@@ -441,14 +438,14 @@ in
     brightnessctl   # backlight control, used by the brightness OSD
     grim            # takes the actual screenshot (screencopy)
     slurp           # interactive region selector, used by grim/grimblast for area captures
-    grimblast  # freeze-then-select screenshots (hyprpicker under the hood)
+    grimblast       # freeze-then-select screenshots (hyprpicker under the hood)
     cliphist        # clipboard history, backing the clipboard-history picker
     wl-clipboard    # wl-copy/wl-paste, used to copy screenshots to the clipboard
     libnotify       # notify-send, used for screenshot/save notifications
 
     dart-sass            # compiles the live Discord theme CSS
     app2unit             # used by the CLI to launch toggled apps
-    gpu-screen-recorder   # backs `caelestia record`
+    gpu-screen-recorder  # backs `caelestia record`
     papirus-icon-theme   # the icon theme itself (theme.iconTheme above)
   ];
 
@@ -528,10 +525,10 @@ in
       transform = ${toString secondaryMonitor.transform},
     })
 
-    -- No more locking on session start here — tuigreet (configuration.nix)
-    -- now handles auth at the actual entry point, before Hyprland even
-    -- starts, so a second lock screen immediately after logging in would
-    -- just be redundant.
+    -- No locking on session start here — greetd (configuration.nix)
+    -- autologs into Hyprland straight away, with LUKS (disko.nix) already
+    -- gating access at boot, so a lock screen immediately after would just
+    -- be redundant.
     hl.on("hyprland.start", function()
       -- The dots' own execs.lua unconditionally runs
       -- `hyprctl setcursor sweet-cursors 24` in its own "hyprland.start"
@@ -549,12 +546,12 @@ in
     -- Super+Shift+Alt+S) to `caelestia screenshot`, which always stages a
     -- copy in ~/.cache/caelestia/screenshots first and only moves it to
     -- ~/Pictures/Screenshots if you click "Save" on the popup notification
-    -- — otherwise it just sits in cache forever. Our own scripts below
+    -- — otherwise it just sits in cache forever. My own scripts below
     -- replace that entirely (freeze + region/full capture, straight to
-    -- Pictures/Screenshots every time), so unbind the dots' defaults first.
-    -- Must run before our own hl.bind("Print", ...) below: hl.unbind
+    -- Pictures/Screenshots every time), so I unbind the dots' defaults
+    -- first. Must run before my own hl.bind("Print", ...) below: hl.unbind
     -- matches by key combo alone, with no notion of which bind owns it, so
-    -- calling it after our own bind exists would remove ours too. This
+    -- calling it after my own bind exists would remove mine too. This
     -- file loads after the dots' keybinds.lua (see the cursor-fix comment
     -- above), so at this point only the dots' bind exists yet to remove.
     hl.unbind("Print")

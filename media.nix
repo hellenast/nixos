@@ -1,7 +1,7 @@
 { config, pkgs, lib, username, ... }:
 
 {
-  # Drawing was chosen over Pinta since it doesn't pull in a Mono/.NET
+  # I chose Drawing over Pinta since it doesn't pull in a Mono/.NET
   # runtime, keeping its closure much smaller. nixpkgs' vlc bundles its own
   # ffmpeg/libav build, so it already handles the common codecs
   # (H.264/H.265/VP9/AV1, AAC/MP3/FLAC, ...) without extra packages.

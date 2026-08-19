@@ -5,11 +5,11 @@
   virtualisation.docker.enable = true;
   # `enableOnBoot` (a NixOS-specific option, distinct from Docker's own
   # "enable") defaults to true, which starts dockerd at boot regardless of
-  # whether anything's using it. false here means dockerd only starts on
-  # demand instead, via docker.socket's own systemd socket activation —
-  # the very first `docker ...` command transparently starts it, so
-  # nothing changes about how docker is actually used, it just doesn't
-  # run when idle/unused.
+  # whether anything's using it. I set it to false here so dockerd only
+  # starts on demand instead, via docker.socket's own systemd socket
+  # activation — the very first `docker ...` command transparently starts
+  # it, so nothing changes about how I actually use docker, it just
+  # doesn't run when idle/unused.
   virtualisation.docker.enableOnBoot = false;
   # Lets me run `docker` without `sudo` — takes effect after logging out
   # and back in (group membership is read at login).
@@ -20,20 +20,20 @@
   # ("Rancher Desktop" is a different, unpackaged thing). Running it as a
   # container is the standard way to get it locally — it bundles its own
   # embedded k3s cluster to host its management components, which is why
-  # the standalone `services.k3s` that used to be here is gone: no point
-  # running two local clusters at once. Manage everything (create/import
-  # clusters, deploy workloads, ...) through this GUI or the `rancher`
-  # CLI below instead of raw kubectl against a second cluster.
+  # the standalone `services.k3s` I used to have here is gone: no point
+  # running two local clusters at once. I manage everything (create/import
+  # clusters, deploy workloads, ...) through this GUI or the `rancher` CLI
+  # below instead of raw kubectl against a second cluster.
   # --privileged is required for Rancher's embedded k3s to work inside the
   # container. Data (users, imported clusters, embedded cluster state)
-  # persists across restarts in the "rancher-data" volume. Non-standard
-  # host ports (8080/8443) so this doesn't fight with anything else that
-  # might want 80/443 on this machine.
+  # persists across restarts in the "rancher-data" volume. I use non-
+  # standard host ports (8080/8443) so this doesn't fight with anything
+  # else that might want 80/443 on this machine.
   #
-  # autoStart = false: doesn't start at boot or whenever dockerd happens
-  # to start — only runs when explicitly started by hand:
+  # autoStart = false: doesn't start at boot or whenever dockerd happens to
+  # start — I only run it when I explicitly start it by hand:
   #   systemctl start docker-rancher
-  # and stopped the same way:
+  # and stop it the same way:
   #   systemctl stop docker-rancher
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.rancher = {
@@ -48,23 +48,22 @@
     docker-compose   # multi-container compose files (docker-compose.yml)
     docker-buildx    # buildx plugin, for multi-arch/advanced image builds
 
-    # JS/TS frontend dev (React, Next.js). Postgres for these projects runs
-    # via docker-compose instead of a Nix-managed service, so there's no
-    # `services.postgresql` here — docker-compose.nix files handle spinning
-    # it up per project.
+    # For my JS/TS frontend dev (React, Next.js). Postgres for these
+    # projects runs via docker-compose instead of a Nix-managed service, so
+    # there's no `services.postgresql` here — docker-compose.yml files
+    # handle spinning it up per project.
     nodejs           # node runtime + npm
     bun              # fast JS runtime/bundler/package manager
     pnpm             # pnpm package manager
 
     kubectl          # talks to any Kubernetes cluster's API (Rancher's or remote)
     kubernetes-helm  # package manager for Kubernetes (charts)
-    rancher          # CLI for logging into and managing Rancher-managed clusters,
-                      # local or remote — talks to the Rancher server above
+    rancher          # CLI for logging into and managing Rancher-managed clusters, local or remote — talks to the Rancher server above
 
-    # Cypress (E2E testing). Nixpkgs' package bundles the patched Electron
-    # binary and every shared lib it needs (Xvfb, GTK, NSS, ...), so
-    # `cypress open`/`cypress run` just work without extra setup.
-    cypress
+    # Nixpkgs' cypress package bundles the patched Electron binary and
+    # every shared lib it needs (Xvfb, GTK, NSS, ...), so `cypress open`/
+    # `cypress run` just work without extra setup from me.
+    cypress  # E2E testing framework
 
     beekeeper-studio  # GUI DB client (Postgres/MySQL/SQLite/...)
     insomnia          # GUI API client (REST/GraphQL/gRPC)

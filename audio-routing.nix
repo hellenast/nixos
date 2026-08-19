@@ -1,16 +1,16 @@
 { config, pkgs, lib, ... }:
 
 let
-  # Virtual mic via PipeWire's PulseAudio-compat layer: a null sink
+  # My virtual mic, via PipeWire's PulseAudio-compat layer: a null sink
   # automatically gets a paired ".monitor" source. That monitor source is
-  # what apps used to be told to pick manually as their mic input, but
-  # PipeWire tags monitor sources as "device.class = monitor", and most
-  # pickers (caelestia's UI, pavucontrol's Input Devices tab, and any app
-  # that just uses "the default mic" like Sober/Zapzap) filter monitor
-  # sources out of the input list entirely — so it can never be set as
-  # default. Fix: module-remap-source wraps the monitor in a plain source
-  # that isn't tagged as a monitor, so it shows up as a normal input device
-  # and can be set as the system default source.
+  # what I used to have to pick manually as my mic input, but PipeWire tags
+  # monitor sources as "device.class = monitor", and most pickers
+  # (caelestia's UI, pavucontrol's Input Devices tab, and any app that just
+  # uses "the default mic" like Sober/Zapzap) filter monitor sources out of
+  # the input list entirely — so it can never be set as default. My fix:
+  # module-remap-source wraps the monitor in a plain source that isn't
+  # tagged as a monitor, so it shows up as a normal input device and can be
+  # set as the system default source.
   # This is the version that actually runs stably for me — no crashes,
   # unlike my earlier attempts with libpipewire-module-loopback.
   #

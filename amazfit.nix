@@ -1,10 +1,11 @@
 { config, pkgs, lib, username, ... }:
 
 let
-  # huami-token: one-off CLI to pull the Bluetooth pairing auth key for the
+  # huami-token: one-off CLI to pull the Bluetooth pairing auth key for my
   # GTR2e from Huami/Zepp's servers (Xiaomi/Amazfit account login), which
-  # Amazfish needs to actually pair with the watch. Run by hand
-  # (`huami-token`) when (re)pairing, not something that runs on its own.
+  # Amazfish needs to actually pair with the watch. I run it by hand
+  # (`huami-token`) when (re)pairing — it's not something that runs on its
+  # own.
   huami-token = pkgs.python3.pkgs.buildPythonApplication rec {
     pname = "huami-token";
     version = "0.8.0";
@@ -41,27 +42,27 @@ let
   };
 in
 {
-  # Amazfish: the actual companion app for the Amazfit GTR2e (steps,
-  # notifications, watch face management, ...). System-wide Flatpak install
-  # is fine here, unlike Spotify in home.nix — nothing needs to patch its
-  # files in place.
+  # Amazfish: the actual companion app for my Amazfit GTR2e (steps,
+  # notifications, watch face management, ...). A system-wide Flatpak
+  # install is fine here, unlike Spotify in home.nix — nothing needs to
+  # patch its files in place.
   services.flatpak.packages = [
-    "uk.co.piggz.amazfish"
+    "uk.co.piggz.amazfish" # Amazfit GTR2e companion app
   ];
 
   environment.systemPackages = [
-    huami-token
+    huami-token # fetches the watch's Bluetooth pairing auth key from Huami/Zepp's servers
   ];
 
-  # Pulls the Bluetooth pairing auth key for the Amazfit watch from
-  # Huami/Zepp's servers via huami-token above, so it can be pasted into
-  # Amazfish's pairing screen. Password is still typed interactively by
-  # huami-token itself — never stored anywhere. Requires the watch to
+  # Pulls the Bluetooth pairing auth key for my Amazfit watch from
+  # Huami/Zepp's servers via huami-token above, so I can paste it into
+  # Amazfish's pairing screen. My password is still typed interactively by
+  # huami-token itself — never stored anywhere. This requires the watch to
   # already be paired AND synced at least once in the Zepp app, otherwise
-  # huami-token comes back with no devices. Declared here (rather than in
-  # home.nix, like the other .local/bin scripts) so this whole module,
-  # including its user-facing helper, can be dropped in one shot if
-  # Amazfish is ever retired.
+  # huami-token comes back with no devices. I declare this here (rather
+  # than in home.nix, like the other .local/bin scripts) so this whole
+  # module, including its user-facing helper, can be dropped in one shot if
+  # I ever retire Amazfish.
   home-manager.users.${username}.home.file.".local/bin/amazfit-get-key.sh" = {
     executable = true;
     text = ''

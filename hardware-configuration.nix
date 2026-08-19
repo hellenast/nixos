@@ -1,4 +1,4 @@
-# CPU/initrd specifics for this machine (kernel modules, microcode). NOT the
+# CPU/initrd specifics for my machine (kernel modules, microcode). NOT the
 # disk layout: fileSystems, swapDevices, and boot.initrd.luks.devices are now
 # supplied by disko.nix (see that file, and README.md -> "Reinstalling with
 # full-disk encryption") instead of being hand-written here.

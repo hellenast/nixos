@@ -4,11 +4,11 @@ let
   # --- Constants ---
 
   # Everything Proton-VPN-related lives in its own network namespace, so
-  # only apps explicitly launched into it are affected — the rest of the
+  # only apps I explicitly launch into it are affected — the rest of the
   # system keeps using the normal default route untouched. This is the
   # standard "netns + veth + wg-quick inside the netns" split-tunnel
   # pattern; ProtonVPN's own Linux client doesn't support per-app split
-  # tunneling, so this is the way to get it on NixOS.
+  # tunneling, so this is how I get it on NixOS.
   netns = "protonvpn";
 
   vethHost = "pvpn-host"; # host end of the veth pair
@@ -21,8 +21,8 @@ let
   # WireGuard configuration). Decrypted by sops-nix (see secrets.nix) into
   # /run/secrets/protonvpn-conf at activation time — a tmpfs path, root-only
   # (0400), gone on reboot — rather than the plain, world-readable file at
-  # /etc/protonvpn/proton.conf this used to be. The encrypted source of
-  # truth is secrets/secrets.yaml, safe to commit to this repo.
+  # /etc/protonvpn/proton.conf it used to be. The encrypted source of truth
+  # is secrets/secrets.yaml, safe for me to commit to this repo.
   wgConfPath = config.sops.secrets."protonvpn-conf".path;
   wgInterface = "protonvpn"; # wg-quick derives this from the conf's basename (secrets.nix pins the path to .../protonvpn.conf)
 
@@ -36,9 +36,10 @@ let
   # Each entry gets its own "<Name> (VPN)" launcher alongside the app's
   # normal one, so both are pickable from the app grid/rofi — the normal
   # launcher keeps using the default route, this one runs the same command
-  # inside the ProtonVPN namespace. `command` must be on $PATH already
+  # inside the ProtonVPN namespace. `command` must already be on $PATH
   # (i.e. the underlying package is installed somewhere else, e.g.
-  # home.nix). Add entries here for whichever apps should be VPN-only.
+  # home.nix). I add entries here for whichever apps I want to be
+  # VPN-only.
   apps = [
     { name = "Vesktop"; command = "vesktop"; icon = "vesktop"; }
     # { name = "qBittorrent"; command = "qbittorrent"; icon = "qbittorrent"; }
@@ -66,7 +67,7 @@ let
   '';
 
   # wg-quick calls `resolvconf -a/-d ...` itself to manage DNS, and fails
-  # the whole service if that binary isn't found. We don't want its DNS
+  # the whole service if that binary isn't found. I don't want its DNS
   # management anyway — DNS for the namespace is already handled
   # statically below via /etc/netns/${netns}/resolv.conf — so this is just
   # a no-op stand-in to keep that call from failing wg-quick.
@@ -83,7 +84,7 @@ in
 {
   environment.systemPackages = [
     pkgs.wireguard-tools # wg / wg-quick, also handy for `wg show` troubleshooting
-    protonvpnRun
+    protonvpnRun          # my wrapper script, defined above, that launches a command inside the VPN namespace
   ] ++ vpnDesktopItems;
 
   # Only this specific netns-exec command gets NOPASSWD — not a general
@@ -102,11 +103,11 @@ in
     }
   ];
 
-  # Needed for the host to NAT/forward the netns's tunnel-setup traffic
-  # (the WireGuard handshake UDP packets themselves, before the tunnel is
-  # up) out through the host's real network — nothing else on this
-  # single-user desktop asks for forwarding, so this is scoped as tightly
-  # as a global sysctl gets.
+  # I need this for the host to NAT/forward the netns's tunnel-setup
+  # traffic (the WireGuard handshake UDP packets themselves, before the
+  # tunnel is up) out through the host's real network — nothing else on
+  # this single-user desktop asks for forwarding, so this is scoped as
+  # tightly as a global sysctl gets.
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
   networking.firewall.extraCommands = ''

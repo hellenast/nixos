@@ -9,9 +9,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Declarative Flatpak management, used twice: system-wide in
+    # Declarative Flatpak management, which I use twice: system-wide in
     # configuration.nix for most apps, and user-scope in home.nix
-    # specifically for Spotify (needs to be writable so spicetify can
+    # specifically for Spotify (it needs to be writable so spicetify can
     # patch it, which a root-owned system install isn't).
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
@@ -58,8 +58,8 @@
 
     # Declarative disk partitioning (see disko.nix) — turns a from-scratch
     # install into "run one command from the live ISO" instead of manually
-    # typing cryptsetup/mkfs/mount by hand. Only exercised during a reinstall
-    # (nixos-install), not on every-day nixos-rebuild switch.
+    # typing cryptsetup/mkfs/mount by hand. I only exercise this during a
+    # reinstall (nixos-install), not on every-day nixos-rebuild switch.
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -70,11 +70,12 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
-    # Single source of truth for everything specific to this person/machine
+    # Single source of truth for everything specific to my machine
     # (username, hostname, timezone, monitor layout, cursor theme, ...) —
-    # see variables.nix. Spread into specialArgs below so every module gets
-    # these as plain arguments, and changing a machine to use this repo is a
-    # one-file edit instead of hunting literals across every module.
+    # see variables.nix. I spread it into specialArgs below so every module
+    # gets these as plain arguments, and adapting this repo to a different
+    # machine is a one-file edit instead of hunting literals across every
+    # module.
     vars = import ./variables.nix;
     inherit (vars) username hostname;
   in {

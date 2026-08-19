@@ -7,7 +7,7 @@
 
   # dconf: caelestia writes GTK theme/color-scheme/icon-theme keys with
   # `dconf write` on every theme switch. Without the D-Bus service actually
-  # running, those writes just go nowhere.
+  # running, those writes go nowhere.
   programs.dconf.enable = true;
 
   # caelestia recolors Papirus folders on every scheme switch by shelling
@@ -52,13 +52,13 @@
     # Needs to resolve via sudo's own PATH search for the *bare* command
     # name caelestia's theme.py invokes — see security.sudo.extraRules
     # above for the full story on why /run/current-system/sw/bin matters.
-    papirus-folders
+    papirus-folders  # recolors Papirus folder icons on theme switch
 
     # papirus-folders itself shells out to `gtk-update-icon-cache` after
     # recoloring — same PATH-visibility problem one level down, since it
     # runs under the restricted PATH root gets via that sudo call.
     # Non-fatal without it (folder colors still change, just no cache
-    # refresh), but this makes the warning go away outright.
-    gtk3
+    # refresh), but having this makes the warning go away outright.
+    gtk3  # provides gtk-update-icon-cache
   ];
 }

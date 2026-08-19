@@ -1,11 +1,11 @@
 {
   # --- Identity ---
   # Login username, its human-readable description (users.users.*.description),
-  # and the machine's own hostname. Threaded into every module as a
-  # specialArg (see flake.nix), so this is the one place to change them.
+  # and the machine's own hostname. This is threaded into every module as a
+  # specialArg (see flake.nix), so it's the one place to change them.
   # `nixos-rebuild switch --flake .#` (no name after `#`) picks the
   # `nixosConfigurations` attribute matching the machine's actual hostname,
-  # so hostname here has to match the real machine you're deploying to.
+  # so hostname here has to match whatever machine you're deploying to.
   username = "hyena";
   userDescription = "Hyena";
   hostname = "hyena";

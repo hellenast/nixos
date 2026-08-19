@@ -8,14 +8,14 @@
   # a long stretch first. This complements the zram/swappiness tuning in
   # configuration.nix (that's about avoiding disk-swap thrashing under
   # moderate pressure; this is about staying responsive if something still
-  # runs away and eats all 60GB anyway — a runaway Electron tab, a container
-  # gone wrong, etc).
+  # runs away and eats all 60GB of my RAM anyway — a runaway Electron tab,
+  # a container gone wrong, etc).
   #
-  # Thresholds: start considering kills once free memory drops under 5% AND
-  # free swap drops under 10% (earlyoom's `-m`/`-s`, both conditions must
-  # hold since zram means "low swap" alone isn't unusual here). Notifies via
-  # libnotify (already installed, home.nix) so a kill isn't a silent
-  # mystery.
+  # Thresholds: I start considering kills once free memory drops under 5%
+  # AND free swap drops under 10% (earlyoom's `-m`/`-s`, both conditions
+  # must hold since zram means "low swap" alone isn't unusual here). It
+  # notifies via libnotify (already installed, home.nix) so a kill isn't a
+  # silent mystery.
   services.earlyoom = {
     enable = true;
     freeMemThreshold = 5;

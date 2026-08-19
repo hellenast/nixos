@@ -1,51 +1,55 @@
-{ config, pkgs, lib, inputs, username, userDescription, hostname, timeZone, defaultLocale, consoleKeyMap, primaryMonitor, secondaryMonitor, cursorTheme, ... }:
+{ config, pkgs, lib, inputs, username, userDescription, hostname, timeZone, defaultLocale, consoleKeyMap, ... }:
 
 let
-  # regreet (below) picks sessions to launch from wayland-sessions .desktop
-  # entries — nothing installs one for Hyprland on its own, since this setup
-  # never used a session-file-driven greeter before (greetd execed
-  # start-hyprland directly). This is the officially supported way to
-  # register one (services.displayManager.sessionPackages), same pattern
-  # nixpkgs' own river/dwl modules use for themselves.
-  hyprlandSession = pkgs.writeTextFile {
-    name = "hyprland-wayland-session";
-    destination = "/share/wayland-sessions/hyprland.desktop";
-    text = ''
-      [Desktop Entry]
-      Name=Hyprland
-      Comment=Hyprland compositor session
-      Exec=start-hyprland
-      Type=Application
-    '';
-    # services.displayManager.sessionPackages requires this — it's how NixOS
-    # knows which session name(s) this package makes available, matching
-    # the .desktop file's own basename above.
-    passthru.providedSessions = [ "hyprland" ];
-  };
+  # A Plymouth theme matching caelestia's current "hard" dynamic scheme
+  # (~/.local/state/caelestia/scheme.json -> background/primary) instead of
+  # a generic third-party palette. I reuse catppuccin-plymouth's mocha
+  # assets (lock icon, password-dot field, keyboard/capslock indicators,
+  # spinner frames) — that's the `two-step` Plymouth plugin, a proven,
+  # built-in-to-plymouth password prompt — but swap in my own colors via a
+  # fresh .plymouth ini rather than reskinning the icons myself.
+  # Static snapshot, not derived live: I re-run this by hand (new hex
+  # values below) if caelestia's scheme ever changes again.
+  caelestiaPlymouthTheme = pkgs.runCommand "caelestia-hard-plymouth-theme" { } ''
+    themeDir=$out/share/plymouth/themes/caelestia-hard
+    mkdir -p "$themeDir"
+    cp ${pkgs.catppuccin-plymouth.override { variant = "mocha"; }}/share/plymouth/themes/catppuccin-mocha/*.png "$themeDir"/
 
-  # regreet's own NixOS module hosts it in cage by default, but cage can
-  # only pick "last enumerated output" or "extend across all outputs" — no
-  # way to name a specific monitor, and "last" landed on the HDMI ultrawide
-  # here instead of the main DP-2 display (confirmed live). sway *can*
-  # target an output by name, so this is a minimal, single-purpose sway
-  # config used only to host the greeter: disabling HDMI-A-1 outright is
-  # what actually guarantees regreet lands on DP-2 (rather than a
-  # `for_window ... move to output` rule, which depends on correctly
-  # guessing regreet's app_id) — with only one output left enabled, there's
-  # nowhere else for it to go. No bar, no gaps, no keybindings at all
-  # (nothing here to hijack — this session has nothing else running in it
-  # to switch to), and the single `exec` line running regreet is what
-  # decides when the session ends: once regreet exits (successful login or
-  # otherwise), `swaymsg exit` tears sway down and hands control back to
-  # greetd, the same way cage tears down when its one wrapped app exits.
-  greeterSwayConfig = pkgs.writeText "greeter-sway-config" ''
-    output ${primaryMonitor.output} enable
-    output ${secondaryMonitor.output} disable
+    cat > "$themeDir"/caelestia-hard.plymouth <<EOF
+    [Plymouth Theme]
+    Name=caelestia-hard
+    Description=Matches caelestia-shell's "hard" dark scheme
+    ModuleName=two-step
 
-    default_border none
-    for_window [app_id=".*"] fullscreen enable
+    [two-step]
+    Font=Noto Sans 12
+    TitleFont=Noto Sans Light 30
+    ImageDir=$themeDir
+    DialogHorizontalAlignment=.5
+    DialogVerticalAlignment=.5
+    TitleHorizontalAlignment=.5
+    TitleVerticalAlignment=.5
+    HorizontalAlignment=.5
+    VerticalAlignment=.5
+    WatermarkHorizontalAlignment=.5
+    WatermarkVerticalAlignment=.5
+    Transition=none
+    TransitionDuration=0.0
+    BackgroundStartColor=0x020305
+    BackgroundEndColor=0x020305
+    ProgressBarBackgroundColor=0x090b0f
+    ProgressBarForegroundColor=0xb4c7ed
+    MessageBelowAnimation=true
 
-    exec "${lib.getExe config.services.displayManager.regreet.package}; swaymsg exit"
+    [boot-up]
+    UseEndAnimation=false
+
+    [shutdown]
+    UseEndAnimation=false
+
+    [reboot]
+    UseEndAnimation=false
+    EOF
   '';
 in
 {
@@ -61,21 +65,39 @@ in
   # boot.loader.grub.enable = true;
   # boot.loader.grub.device = "/dev/sda";
 
+  # I need a systemd-based initrd to actually let Plymouth theme the LUKS
+  # passphrase prompt below — the classic initrd shows that prompt as plain
+  # text on the console *before* Plymouth ever starts (there's no hook
+  # between them), while systemd's own systemd-ask-password mechanism talks
+  # to Plymouth directly, which is how every "pretty" LUKS unlock screen
+  # (Omarchy included) actually works under the hood.
+  boot.initrd.systemd.enable = true;
+
+  # I want a themed splash + LUKS unlock screen instead of plain text —
+  # caelestia-matched colors (see caelestiaPlymouthTheme above) instead of
+  # a generic NixOS snowflake watermark, since that logo overlay only wires
+  # itself up for the stock catppuccin theme names, not my custom one.
+  boot.plymouth = {
+    enable = true;
+    theme = "caelestia-hard";
+    themePackages = [ caelestiaPlymouthTheme ];
+  };
+
   # --- Memory management ---
-  # Default is 60 — fine for a typical amount of RAM, but this machine has
+  # Default is 60 — fine for a typical amount of RAM, but my machine has
   # 60GB, so the kernel proactively swapping out idle pages that early is
   # pure waste. Lower means "only swap once actually under real memory
-  # pressure" instead of preemptively; 8GB of swap (hardware-configuration.
-  # nix) was never sized for hibernation anyway (sleep/suspend is disabled
-  # outright below), so this is purely about avoiding unnecessary swap
-  # I/O, not preserving swap headroom for anything.
+  # pressure" instead of preemptively; my 8GB of swap (hardware-
+  # configuration.nix) was never sized for hibernation anyway (sleep/
+  # suspend is disabled outright below), so this is purely about avoiding
+  # unnecessary swap I/O, not preserving swap headroom for anything.
   boot.kernel.sysctl."vm.swappiness" = 10;
 
   # zram: compressed swap living in RAM instead of on disk — no disk I/O,
   # and compression means it holds more than its nominal size in actual
-  # data. Given the kernel already prefers whichever swap device has the
+  # data. Since the kernel already prefers whichever swap device has the
   # higher priority, and zram's default priority (5) already beats the
-  # disk swapfile's (-2, unset in disko.nix), this naturally becomes the
+  # disk swapfile's (-2, unset in disko.nix), this naturally becomes my
   # first line of defense — the disk swapfile only gets touched if zram
   # itself fills up too, which at 50% of 60GB RAM (the module's default,
   # left as-is) is a lot of headroom.
@@ -92,7 +114,7 @@ in
   time.timeZone = timeZone;
   i18n.defaultLocale = defaultLocale;
 
-  # TTY keymap to match the intl dead-key layout Hyprland uses (see
+  # TTY keymap to match the intl dead-key layout I use for Hyprland (see
   # home.nix -> caelestia/hypr-user.lua). Only affects plain virtual
   # consoles, not the graphical session. See variables.nix.
   console.keyMap = consoleKeyMap;
@@ -103,10 +125,10 @@ in
 
   # Garbage collection: every generation (system + home-manager) pins its
   # own closure in the store forever until something collects it, so this
-  # only grows unbounded otherwise — update-flake.sh (home.nix) bumps
-  # inputs often enough that old generations pile up fast. Daily sweep,
-  # keeping a week of history (enough to roll back a bad rebuild from a
-  # few days ago) and deleting anything older.
+  # only grows unbounded otherwise — update-flake.sh (home.nix) bumps my
+  # inputs often enough that old generations pile up fast. I run a daily
+  # sweep, keeping a week of history (enough to roll back a bad rebuild
+  # from a few days ago) and deleting anything older.
   nix.gc = {
     automatic = true;
     dates = "daily";
@@ -118,9 +140,15 @@ in
     enable = true;
     enable32Bit = true;
   };
-  # amdgpu is the default kernel driver on modern kernels, nothing extra
-  # needed. If I ever end up on a very new AMD GPU that isn't recognized:
-  # boot.initrd.kernelModules = [ "amdgpu" ];
+  # amdgpu is the default kernel driver on modern kernels, so nothing extra
+  # is needed for the desktop session itself to find/use it. But without
+  # this, amdgpu only loads once stage 2 gets around to it — everything
+  # before that (Plymouth's splash, the LUKS unlock prompt above) runs on
+  # the firmware's plain EFI framebuffer instead, which is what was
+  # rendering at the wrong (non-native) resolution for me. Loading amdgpu
+  # in the initrd itself gives Plymouth real KMS at the monitor's native
+  # resolution from the very first frame.
+  boot.initrd.kernelModules = [ "amdgpu" ];
 
   # --- Desktop session: Hyprland + greetd ---
   programs.hyprland = {
@@ -128,41 +156,26 @@ in
     xwayland.enable = true;
   };
 
-  # A themed GTK login screen (regreet, run inside a minimal sway session —
-  # see greeterSwayConfig above) prompts for a password on every
-  # boot/logout before Hyprland ever starts — no more autologin, and no
-  # more caelestia locking the screen again immediately on session start
-  # (see home.nix -> caelestia/hypr-user.lua, that hyprland.start hook is
-  # gone now that this covers the same job at the actual entry point).
-  #
-  # Went with regreet over tuigreet (the first attempt here) specifically
-  # because tuigreet is a bare terminal UI — plain text on a black
-  # background, no theming to speak of. regreet is an actual GTK app: it
-  # gets a real background/cursor/icon theme and font, set below, though it
-  # can't pick up caelestia's *dynamic* colors the way in-session GTK apps
-  # do — it runs before the session (and caelestia) exist at all.
-  services.displayManager.regreet = {
+  # greetd starts Hyprland straight for me, no greeter prompt and no
+  # password check of its own — LUKS (disko.nix) already gates access at
+  # boot, so a second password prompt here would just be redundant on top
+  # of disk decryption.
+  services.greetd = {
     enable = true;
-    cursorTheme = {
-      package = pkgs.bibata-cursors;
-      name = cursorTheme;
+    settings = {
+      initial_session = {
+        command = "start-hyprland";
+        user = username;
+      };
+      # Fallback if I ever log back out to a greeter (e.g. switching users).
+      default_session = {
+        command = "start-hyprland";
+        user = username;
+      };
     };
-    # regreet defaults to plain Adwaita, which (unlike the dark caelestia
-    # theme everywhere else) renders as a light/white window — this is the
-    # actual GTK dark-mode preference, not a different theme name; modern
-    # Adwaita follows it instead of needing a separate "-dark" theme.
-    settings.GTK.application_prefer_dark_theme = true;
   };
 
-  # Overrides the module's own cage-based default (see greeterSwayConfig
-  # above for why) — a plain assignment here beats the module's mkDefault
-  # without needing lib.mkForce.
-  services.greetd.settings.default_session.command =
-    "${pkgs.dbus}/bin/dbus-run-session ${lib.getExe pkgs.sway} --config ${greeterSwayConfig}";
-
-  services.displayManager.sessionPackages = [ hyprlandSession ];
-
-  # Portals: screen share, file pickers, etc. under Wayland.
+  # Portals I need under Wayland: screen share, file pickers, etc.
   xdg.portal = {
     enable = true;
     extraPortals = [
@@ -191,10 +204,10 @@ in
   # --- Power management ---
   # I never want this machine to sleep on its own. Masking the sleep
   # targets outright means nothing can trigger them — not a stray
-  # `systemctl suspend`, not the power button, not the lid switch. More
-  # reliable than editing hypridle.conf, since that would only cover the
-  # idle-timeout path (and this setup doesn't even use hypridle — see
-  # home.nix for why).
+  # `systemctl suspend`, not the power button, not the lid switch. This is
+  # more reliable than editing hypridle.conf, since that would only cover
+  # the idle-timeout path (and I don't even use hypridle in this setup —
+  # see home.nix for why).
   systemd.targets.sleep.enable = false;
   systemd.targets.suspend.enable = false;
   systemd.targets.hibernate.enable = false;
@@ -231,9 +244,9 @@ in
   # Without gvfs, Thunar has no trash:// backend at all, so its Delete
   # action always falls back to permanent deletion (with a confirmation
   # prompt) instead of moving files to ~/.local/share/Trash the way GIO's
-  # trash spec expects. This also brings network-mount browsing (sftp://,
-  # smb://, ...) and drag-and-drop between apps that expect gvfs, not just
-  # trash.
+  # trash spec expects. I want that, plus this also brings network-mount
+  # browsing (sftp://, smb://, ...) and drag-and-drop between apps that
+  # expect gvfs, not just trash.
   services.gvfs.enable = true;
 
   # --- Thunar + archive plugin ---
@@ -241,7 +254,7 @@ in
   # Compress.../Extract Here entries) only get picked up if Thunar itself is
   # built with them via this module's `plugins` list — just adding the
   # plugin package to home.packages alongside a separately-installed Thunar
-  # (as this used to do) doesn't work, since Thunar only scans THUNARX_DIRS
+  # (as I used to do) doesn't work, since Thunar only scans THUNARX_DIRS
   # from its own wrapper, not an arbitrary sibling package in the profile.
   # xarchiver (home.nix) is the actual archive-manager backend the plugin
   # calls out to; zip/unzip/p7zip (home.nix) are the formats it can use.
@@ -255,16 +268,17 @@ in
   # --- Flatpak ---
   services.flatpak.enable = true;
   # nix-flatpak's own auto-updater — registers a systemd timer that updates
-  # installed Flatpaks (Sober here) in place. Nix itself has nothing to do
-  # with keeping Flatpak apps current; this is the one piece of "staying
-  # updated" that isn't covered by bumping flake.lock. Daily rather than
-  # weekly: Sober/Roblox ships new builds faster than once a week, and
-  # Sober refuses to launch at all against a stale build until it's updated.
+  # my installed Flatpaks (Sober here) in place. Nix itself has nothing to
+  # do with keeping Flatpak apps current; this is the one piece of "staying
+  # updated" that isn't covered by bumping flake.lock. I run it daily
+  # rather than weekly: Sober/Roblox ships new builds faster than once a
+  # week, and Sober refuses to launch at all against a stale build until
+  # it's updated.
   services.flatpak.update.auto = {
     enable = true;
     onCalendar = "daily";
   };
-  # Also update on every boot, not just once a day — Sober/Roblox ships
+  # I also update on every boot, not just once a day — Sober/Roblox ships
   # builds often enough that a same-day gap can still leave it stale, and
   # Sober refuses to launch at all against a stale build. Independent of
   # the timer above (its unit name is a nix-flatpak internal), so it isn't
@@ -290,7 +304,7 @@ in
     }
   ];
   services.flatpak.packages = [
-    "org.vinegarhq.Sober"
+    "org.vinegarhq.Sober" # Roblox client
     # Amazfish (Amazfit companion app) lives in amazfit.nix instead.
     # Spotify lives in home.nix instead, as a *user-scope* Flatpak install
     # via nix-flatpak's home-manager module — this system-wide install path
@@ -321,7 +335,7 @@ in
     usbutils  # lsusb and friends, for inspecting connected USB devices
 
     # Audio routing, for patching the Windows VM's Dubbing AI output into
-    # the virtual mic (see audio-routing.nix).
+    # my virtual mic (see audio-routing.nix).
     pavucontrol  # GUI mixer/volume control per app and device
     qpwgraph     # GUI PipeWire patchbay, for wiring virtual audio nodes together
   ];

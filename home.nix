@@ -71,10 +71,8 @@ let
       { id = "battery"; enabled = false; }
     ];
     # Same {id, enabled} list shape as statusIcons above, this time for
-    # which modules show in the bar at all — `power` is the energy-profile
-    # (performance/balanced/power-saver) widget I don't want, so it's the
-    # only entry flipped off here, full default list spelled out for the
-    # same reload-replaces-wholesale reason.
+    # which modules show in the bar at all — full default list spelled out
+    # for the same reload-replaces-wholesale reason.
     bar.entries = [
       { id = "logo"; enabled = true; }
       { id = "workspaces"; enabled = true; }
@@ -84,7 +82,7 @@ let
       { id = "tray"; enabled = true; }
       { id = "clock"; enabled = true; }
       { id = "statusIcons"; enabled = true; }
-      { id = "power"; enabled = false; }
+      { id = "power"; enabled = true; }
     ];
     osd.enableBrightness = false;
     # Both of these otherwise default to a locale-based guess (see

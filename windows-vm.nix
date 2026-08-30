@@ -26,6 +26,11 @@ let
   micVendorId = "0x3142";   # FIFINE Microphone (fifinemicrophone.com)
   micProductId = "0x7301";
 
+  # Same IDs, without the "0x" prefix libvirt XML wants — udev's ATTRS
+  # matching on idVendor/idProduct expects bare hex.
+  micVendorIdRaw = lib.removePrefix "0x" micVendorId;
+  micProductIdRaw = lib.removePrefix "0x" micProductId;
+
   vmUuid = "6c4f6b8c-9f1a-4e3a-8b7d-2a1e6f9c0d21";  # stable, don't regenerate
   netUuid = "9b6a2f1e-4c3d-4a8b-9e2f-1a7c6d5b8e40"; # stable, don't regenerate
 
@@ -91,7 +96,13 @@ let
 
         <input type='tablet' bus='usb'/>
         <input type='keyboard' bus='usb'/>
-        <controller type='usb' model='qemu-xhci'/>
+        <!-- piix3-uhci (USB 1.1), not qemu-xhci: Windows guests routinely
+             fail to enumerate full/low-speed USB-audio devices (like the
+             FIFINE mic, 12 Mb/s) through an emulated xHCI root hub — QEMU
+             shows the device attached, but Windows never sees a connect
+             event and Device Manager shows nothing. UHCI matches the mic's
+             native speed and reliably fixes this. -->
+        <controller type='usb' model='piix3-uhci'/>
 
         <graphics type='spice' autoport='yes'/>
         <video>
@@ -135,6 +146,27 @@ in
   # Lets me pass a real USB mic/headset straight into the VM if routing
   # through virtio-sound/SPICE isn't enough on its own.
   virtualisation.spiceUSBRedirection.enable = true;
+
+  # The FIFINE mic is dedicated to the Windows VM and should never be
+  # claimed by the host's own audio/HID drivers. Without this, Linux
+  # auto-binds snd-usb-audio/usbhid the instant the mic enumerates on the
+  # bus (normal kernel behavior). That's fine on a clean VM boot, since
+  # QEMU's usb-host device forcibly steals the interfaces from the host.
+  # But if the mic ever drops and re-enumerates while the VM is already
+  # running — a hub power blip, a device reset, or just it sitting
+  # connected across an unrelated host config change — the kernel treats
+  # that as a fresh connect and re-binds the host drivers immediately,
+  # and nothing prompts QEMU to re-steal the interfaces. The guest is
+  # then left holding a stale, non-functional reference until the VM is
+  # fully stopped and restarted (silently: the mic just vanishes from
+  # Windows, with no driver error and nothing in Device Manager).
+  # Blacklisting the driver bind here closes that race entirely — the
+  # device is never claimed by the host in the first place, on any
+  # (re)connect, so QEMU always finds it free to take.
+  services.udev.extraRules = ''
+    ACTION=="bind", SUBSYSTEM=="usb", DRIVER=="snd-usb-audio", ATTRS{idVendor}=="${micVendorIdRaw}", ATTRS{idProduct}=="${micProductIdRaw}", RUN+="${pkgs.bash}/bin/sh -c 'echo -n $kernel > /sys/bus/usb/drivers/snd-usb-audio/unbind'"
+    ACTION=="bind", SUBSYSTEM=="usb", DRIVER=="usbhid", ATTRS{idVendor}=="${micVendorIdRaw}", ATTRS{idProduct}=="${micProductIdRaw}", RUN+="${pkgs.bash}/bin/sh -c 'echo -n $kernel > /sys/bus/usb/drivers/usbhid/unbind'"
+  '';
 
   # So virt-manager doesn't ask for the root password on every routine
   # libvirt action (start/stop/create VM) once I'm in the "libvirtd" group

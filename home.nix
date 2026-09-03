@@ -474,6 +474,14 @@ in
 
     zapzap  # WhatsApp desktop client
 
+    # Wine prefix manager, for Windows apps I don't have a native Linux
+    # build for (Rave, so far). Each app gets its own isolated
+    # prefix/runner, so they can't collide with each other's dependencies.
+    # I already have 32-bit graphics (hardware.graphics.enable32Bit) and
+    # audio (pipewire alsa.support32Bit) enabled in configuration.nix for
+    # Steam/Proton, which covers what Wine needs too.
+    bottles
+
     # Misc utilities the shell/CLI lean on directly
     playerctl       # media player control (play/pause/next), used by bar/OSD widgets
     brightnessctl   # backlight control, used by the brightness OSD

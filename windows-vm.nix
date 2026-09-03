@@ -140,8 +140,34 @@ in
       package = pkgs.qemu_kvm;
       runAsRoot = true;
     };
+    # Default is "suspend": on host shutdown, libvirt-guests.service
+    # managed-saves a memory snapshot of the VM and restores it on the
+    # next boot. That snapshot pins the FIFINE mic's exact host USB
+    # bus/device address at save time — but USB device numbers aren't
+    # guaranteed stable across a host reboot, so the restore intermittently
+    # fails to find the device ("Unable to find device 006.003 in list of
+    # active USB devices"), leaving the hostdev broken regardless of the
+    # udev-timing fix above. A plain ACPI shutdown avoids ever creating
+    # that snapshot, so every boot is a clean cold start instead.
+    onShutdown = "shutdown";
   };
   programs.virt-manager.enable = true;
+
+  # On a cold boot, the udev rule below (which unbinds the host's
+  # snd-usb-audio/usbhid drivers from the FIFINE mic) and libvirtd
+  # autostarting the VM both fire around the same moment. If QEMU's
+  # hostdev claim reaches the mic before udev has finished unbinding it,
+  # the claim silently fails — QEMU still reports the device as
+  # "attached" (it can read the name off the control endpoint), but
+  # never actually owns the functional interfaces, so the mic never
+  # appears in Windows until manually re-kicked (detach/reattach or a
+  # full VM restart). Blocking libvirtd's own startup on `udevadm
+  # settle` guarantees the unbind has already happened — including our
+  # rule's RUN+= handler — before it can autostart the domain, so QEMU
+  # always finds the interfaces genuinely free on the first try.
+  systemd.services.libvirtd.preStart = ''
+    ${pkgs.systemd}/bin/udevadm settle --timeout=30
+  '';
 
   # Lets me pass a real USB mic/headset straight into the VM if routing
   # through virtio-sound/SPICE isn't enough on its own.

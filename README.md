@@ -47,7 +47,10 @@ Docker (installed but not started at boot — starts on demand the first time `d
 Amazfish (Flatpak) as the companion app for my Amazfit GTR2e watch, a custom-packaged `huami-token` CLI, and an `amazfit-get-key.sh` helper script that fetches the watch's Bluetooth pairing key from Huami/Zepp's servers. See Manual Setup below — this one has real interactive steps every time I re-pair the watch.
 
 ### `gaming.nix`
-Steam (Remote Play + dedicated-server firewall rules, gamescope session for fullscreen game launches), gamescope itself, GameMode for automatic per-game performance tweaks, and the Minecraft launchers — mcpelauncher-ui-qt (Bedrock Edition) and Prism Launcher (Java Edition).
+Steam (Remote Play + dedicated-server firewall rules, gamescope session for fullscreen game launches), gamescope itself, GameMode for automatic per-game performance tweaks, and Prism Launcher for Minecraft Java Edition.
+
+### `waydroid.nix`
+A real Android container (GPU-accelerated, real Android runtime, not a reimplementation of one) for running Android apps I don't have a native Linux build of — currently just Minecraft Bedrock Edition, but not gaming-specific, hence its own file instead of living in `gaming.nix`. Uses the `waydroid-nftables` package variant, not plain `waydroid` — this kernel has no `ip_tables` module, so the default package's `iptables`-based network setup script fails outright ("Failed to setup waydroid-net" in `waydroid.log`); the nftables variant drives `nft` against `nf_tables` instead, which this kernel does support.
 
 ### `vr.nix`
 ALVR — streams SteamVR content to a standalone headset (Quest, etc.) over Wi-Fi. Just the server + firewall ports; headset pairing itself is outside Nix.
@@ -88,7 +91,7 @@ My machine was originally installed without disk encryption; `disko.nix` describ
 
 One wrinkle either way: `secrets.nix`/`protonvpn.nix` need an age private key at `/var/lib/sops-nix/key.txt` to decrypt `secrets/secrets.yaml` (see "Secrets" below), and a from-scratch install has no such key yet. Left enabled, `nixos-install` fails during activation trying to decrypt a secret it has no key for. Both paths below deal with this by disabling those modules for the initial install, then re-enabling them afterward once the key is back in place.
 
-1. **Back up everything.** `/home` and `/persist` hold real data; `/var/lib/libvirt/images` (the Windows VM disk, see `windows-vm.nix`) is large stateful data Nix doesn't manage and won't recreate; and `/var/lib/sops-nix/key.txt` is my age private key — without a copy of it, `secrets/secrets.yaml` is unreadable after reinstall and I have to fall back to generating a fresh keypair and re-encrypting (see "Secrets" below). Copy all of these somewhere separate if they're worth keeping, or plan to reinstall Windows from scratch / regenerate the key.
+1. **Back up everything.** `/home` and `/persist` hold real data; `/var/lib/libvirt/images` (the Windows VM disk, see `windows-vm.nix`) and `/var/lib/waydroid/data` (Waydroid's Android `/data` — installed apps, their data, and signed-in accounts, see `waydroid.nix`) are large stateful data Nix doesn't manage and won't recreate; and `/var/lib/sops-nix/key.txt` is my age private key — without a copy of it, `secrets/secrets.yaml` is unreadable after reinstall and I have to fall back to generating a fresh keypair and re-encrypting (see "Secrets" below). Copy all of these somewhere separate if they're worth keeping, or plan to reinstall Windows from scratch / regenerate the key / redo Waydroid app setup from scratch. `/var/lib/waydroid/images` and `/var/lib/waydroid/rootfs` are NOT worth backing up — they're just the downloaded Android system/vendor build, redone for free by `waydroid init` on the new install.
 2. Boot the machine from a [NixOS live ISO](https://nixos.org/download) (USB installer) with network access.
 
 ### The easy way: `fresh-install.sh`
@@ -104,7 +107,7 @@ It prompts for confirmation before wiping the target disk. Once it's done and I'
 1. Restore `/var/lib/sops-nix/key.txt` from backup (or generate a fresh keypair and `sops updatekeys` — see "Secrets" below).
 2. Uncomment `./secrets.nix`, `./protonvpn.nix`, and `inputs.sops-nix.nixosModules.sops` back in `/etc/nixos/flake.nix`.
 3. `sudo nixos-rebuild switch --flake /etc/nixos#hyena`.
-4. Restore `/home`, `/persist`, and (if kept) the Windows VM disk from the backup made in step 1 above.
+4. Restore `/home`, `/persist`, and (if kept) the Windows VM disk and Waydroid's `/var/lib/waydroid/data` from the backup made in step 1 above. For Waydroid specifically: run `sudo waydroid init -s GAPPS` first so `/var/lib/waydroid` (images/rootfs) exists, stop it (`sudo systemctl stop waydroid-container`), then drop the backed-up `data` directory into `/var/lib/waydroid/` before starting a session again — that's what brings installed apps and signed-in accounts back instead of a blank Android profile.
 
 ### The manual way
 
@@ -128,7 +131,7 @@ Same result, one step at a time — useful if I want to see/adjust each step, or
    ```
    `nixos-install` will ask me to set a root password — anything works, it's a fallback console login, not what I use day to day (greetd autologs into Hyprland, see `configuration.nix`).
 7. Reboot, remove the USB. The firmware boots the plaintext ESP, systemd-boot loads the kernel/initrd, and the initrd is what actually prompts for the LUKS passphrase before anything else can start.
-8. Restore `/home`, `/persist`, and (if kept) the Windows VM disk from the backup made in step 1 above.
+8. Restore `/home`, `/persist`, and (if kept) the Windows VM disk and Waydroid's `/var/lib/waydroid/data` from the backup made in step 1 above — see the Waydroid-specific note under the easy way, step 4, for the right order (init before restoring `data`).
 
 No manual `cryptsetup`/`mkfs`/subvolume/`mount` commands anywhere in this — `disko.nix` is the single source of truth for the disk layout, same as `variables.nix` is for identity/preferences.
 
@@ -200,11 +203,13 @@ Editing an existing secret: `sops secrets/secrets.yaml` (needs `SOPS_AGE_KEY_FIL
 - Each Windows app (Rave, etc.) needs its own bottle created by hand through the Bottles GUI, then the `.exe` run inside it to install — not something Nix can do for me.
 - Bottle data (prefixes, installed apps) lives under `~/.local/share/bottles` — real stateful data, not rebuilt by Nix, so it needs its own backup if I care about not reinstalling everything after a reformat.
 
-### Minecraft Bedrock Edition (`gaming.nix`)
-- `mcpelauncher-ui-qt` installs the launcher, not the game itself. First launch, I need to use its built-in version manager to fetch a Bedrock build — there's no Nix package for the game, since Mojang only distributes it through the Microsoft Store/mobile/console.
-- Signing in with my Microsoft/Xbox account (for online multiplayer, Realms, and Marketplace content) is also done inside the launcher itself, not through Nix.
-- Game data (worlds, resource packs, my account session) lives under `~/.local/share/mcpelauncher` — real stateful data, so it needs its own backup if I care about not losing worlds after a reformat.
-- The latest Bedrock build often crashes on launch (`Signal 11`, backtrace through the launcher's own Android-compat `LINKER` and `libc++_shared.so`) — mcpelauncher-client's custom linker regularly lags behind whatever symbols/relocations the newest Bedrock build needs, and nixpkgs already tracks upstream's latest release, so there's no packaging fix for this. Workaround: in the launcher's version manager, download an older Bedrock build instead of the newest one — I don't pin a specific version here since which one is compatible shifts as Mojang ships updates.
+### Minecraft Bedrock Edition (`waydroid.nix`)
+- I tried `mcpelauncher-ui-qt` first (an unofficial launcher that reimplements Android's dynamic linker to run Bedrock's native libraries directly on Linux) but dropped it — every Bedrock version I tested segfaulted, because its custom symbol resolver is missing libc symbols (`pthread_sigmask`, confirmed present in glibc itself via `nm`/`readelf`, so the gap is in mcpelauncher's own shim) that current Bedrock builds call. That's an upstream mcpelauncher-client bug, not a Nix packaging issue — nixpkgs already ships their latest release.
+- Waydroid replaces it: a real Android container, so Bedrock runs on an actual Android runtime instead of a from-scratch reimplementation of one. `virtualisation.waydroid.enable` handles the kernel config/LXC/dbus wiring, but everything after that is interactive, outside Nix:
+  1. `sudo waydroid init` once, to pull down a system image (need the GAPPS variant for Play Store access — `waydroid init -s GAPPS`, or reinit with `-f` if I already ran a plain init).
+  2. `waydroid session start`, then open the Waydroid window and sign into a Google account that owns (or can buy) Minecraft on Google Play.
+  3. Install Minecraft from the Play Store inside it like on a phone, then sign into Xbox/Microsoft the same as any other platform for online multiplayer/Realms.
+- Only `/var/lib/waydroid/data` is worth backing up — that's the actual Android `/data` partition: installed apps (Minecraft included), their data/worlds, and signed-in Google/Xbox accounts. `/var/lib/waydroid/images` and `/var/lib/waydroid/rootfs` are just the downloaded Android system/vendor build, free to recreate with `waydroid init -s GAPPS` again, no backup needed. See "Reinstalling with full-disk encryption" above for the fresh-install restore order.
 
 ### Minecraft Java Edition (`gaming.nix`)
 - `prismlauncher` installs the launcher only. Signing in with my Microsoft account, and creating/configuring instances (vanilla or modded, picking a version + mod loader), all happen inside the launcher itself on first use.

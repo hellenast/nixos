@@ -89,6 +89,7 @@
         ./audio-routing.nix
         ./vr.nix
         ./gaming.nix
+        ./waydroid.nix
         ./caelestia-system.nix
         ./amazfit.nix
         ./media.nix

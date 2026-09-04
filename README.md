@@ -47,7 +47,7 @@ Docker (installed but not started at boot — starts on demand the first time `d
 Amazfish (Flatpak) as the companion app for my Amazfit GTR2e watch, a custom-packaged `huami-token` CLI, and an `amazfit-get-key.sh` helper script that fetches the watch's Bluetooth pairing key from Huami/Zepp's servers. See Manual Setup below — this one has real interactive steps every time I re-pair the watch.
 
 ### `gaming.nix`
-Steam (Remote Play + dedicated-server firewall rules, gamescope session for fullscreen game launches), gamescope itself, and GameMode for automatic per-game performance tweaks.
+Steam (Remote Play + dedicated-server firewall rules, gamescope session for fullscreen game launches), gamescope itself, GameMode for automatic per-game performance tweaks, and the Minecraft launchers — mcpelauncher-ui-qt (Bedrock Edition) and Prism Launcher (Java Edition).
 
 ### `vr.nix`
 ALVR — streams SteamVR content to a standalone headset (Quest, etc.) over Wi-Fi. Just the server + firewall ports; headset pairing itself is outside Nix.
@@ -199,3 +199,13 @@ Editing an existing secret: `sops secrets/secrets.yaml` (needs `SOPS_AGE_KEY_FIL
 ### Bottles (`home.nix`)
 - Each Windows app (Rave, etc.) needs its own bottle created by hand through the Bottles GUI, then the `.exe` run inside it to install — not something Nix can do for me.
 - Bottle data (prefixes, installed apps) lives under `~/.local/share/bottles` — real stateful data, not rebuilt by Nix, so it needs its own backup if I care about not reinstalling everything after a reformat.
+
+### Minecraft Bedrock Edition (`gaming.nix`)
+- `mcpelauncher-ui-qt` installs the launcher, not the game itself. First launch, I need to use its built-in version manager to fetch a Bedrock build — there's no Nix package for the game, since Mojang only distributes it through the Microsoft Store/mobile/console.
+- Signing in with my Microsoft/Xbox account (for online multiplayer, Realms, and Marketplace content) is also done inside the launcher itself, not through Nix.
+- Game data (worlds, resource packs, my account session) lives under `~/.local/share/mcpelauncher` — real stateful data, so it needs its own backup if I care about not losing worlds after a reformat.
+- The latest Bedrock build often crashes on launch (`Signal 11`, backtrace through the launcher's own Android-compat `LINKER` and `libc++_shared.so`) — mcpelauncher-client's custom linker regularly lags behind whatever symbols/relocations the newest Bedrock build needs, and nixpkgs already tracks upstream's latest release, so there's no packaging fix for this. Workaround: in the launcher's version manager, download an older Bedrock build instead of the newest one — I don't pin a specific version here since which one is compatible shifts as Mojang ships updates.
+
+### Minecraft Java Edition (`gaming.nix`)
+- `prismlauncher` installs the launcher only. Signing in with my Microsoft account, and creating/configuring instances (vanilla or modded, picking a version + mod loader), all happen inside the launcher itself on first use.
+- Instance data (worlds, mods, per-instance settings) lives under `~/.local/share/PrismLauncher` — real stateful data, so it needs its own backup if I care about not losing worlds/modpacks after a reformat.

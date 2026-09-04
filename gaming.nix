@@ -35,4 +35,20 @@
       };
     };
   };
+
+  environment.systemPackages = with pkgs; [
+    # Unofficial Minecraft Bedrock Edition launcher. Bedrock itself is only
+    # ever shipped through the Microsoft Store/mobile/console, so this is
+    # what lets me play it natively on Linux instead of dedicating the
+    # Windows VM to it. First run needs an interactive version
+    # download/sign-in step — see Manual setup in README.md.
+    mcpelauncher-ui-qt
+
+    # Minecraft Java Edition launcher (FOSS, MultiMC-derived). Manages its
+    # own bundled JRE and per-instance mod loaders (Fabric/Forge/etc.), so
+    # I don't need a separate JDK package here. Microsoft account sign-in
+    # and instance/mod setup happen inside it — see Manual setup in
+    # README.md.
+    prismlauncher
+  ];
 }

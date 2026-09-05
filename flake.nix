@@ -64,6 +64,18 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Runs the real Windows (GDK) build of Minecraft Bedrock Edition under
+    # steam-run/Proton, with native Xbox sign-in — what I landed on for
+    # Bedrock after both mcpelauncher-ui-qt (broken symbol resolver,
+    # segfaults on every version) and Waydroid (Mojang's own anti-tamper
+    # library refuses to run in its non-certified Android build, confirmed
+    # by a from-scratch reinstall) turned out to be genuine, unresolved
+    # upstream dead ends. See gaming.nix.
+    bedrock-on-linux = {
+      url = "github:Wyze3306/BedrockOnLinux";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, caelestia-shell, caelestia-cli, caelestia-dots-src, zen-browser, ... } @ inputs: let

@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
   programs.steam = {
@@ -43,9 +43,14 @@
     # and instance/mod setup happen inside it — see Manual setup in
     # README.md.
     prismlauncher
-  ];
 
-  # --- Minecraft Bedrock Edition: see waydroid.nix ---
-  # It runs through a real Android container rather than a game-specific
-  # package, so it's not gaming-only and lives in its own file.
+    # Minecraft Bedrock Edition, the real Windows (GDK) build running
+    # under steam-run/Proton with native Xbox sign-in — see flake.nix for
+    # why I landed here after mcpelauncher-ui-qt and Waydroid (still kept
+    # around in waydroid.nix for other Android apps, just not Bedrock)
+    # both turned out to be dead ends. Ships no game files itself; the
+    # first run downloads Minecraft from Microsoft under my own account —
+    # see Manual setup in README.md.
+    inputs.bedrock-on-linux.packages.${pkgs.system}.default
+  ];
 }

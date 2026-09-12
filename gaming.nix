@@ -15,11 +15,16 @@
     };
   };
 
-  # Needs its own enable to install the binary and the setuid wrapper
-  # (capSysNice) that lets gamescope renice itself for lower latency.
+  # capSysNice off: the setuid wrapper it installs breaks when gamescope is
+  # launched from a Steam per-game Launch Options command (e.g. `gamescope
+  # ... -- %command%`) — Steam sets no_new_privs on that process chain,
+  # which makes the kernel refuse the wrapper's file capability, so
+  # gamescope exits immediately with "failed to inherit capabilities:
+  # Operation not permitted". gamemode (below) already reduces niceness for
+  # games, so the wrapper isn't worth losing per-game gamescope over.
   programs.gamescope = {
     enable = true;
-    capSysNice = true;
+    capSysNice = false;
   };
 
   # Auto-applies perf tweaks (CPU governor, I/O priority, etc.) while a game

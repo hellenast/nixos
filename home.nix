@@ -161,6 +161,7 @@ in
   imports = [
     inputs.caelestia-shell.homeManagerModules.default
     inputs.zen-browser.homeModules.beta
+    inputs.helium-browser.homeModules.default
     inputs.nix-flatpak.homeManagerModules.nix-flatpak
   ];
 
@@ -398,6 +399,11 @@ in
   programs.zen-browser = {
     enable = true;
     setAsDefaultBrowser = true;
+  };
+
+  # --- Helium browser ---
+  programs.helium = {
+    enable = true;
   };
 
   # --- Kitty ---

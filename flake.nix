@@ -40,6 +40,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    helium-browser = {
+      url = "github:oxcl/nix-flake-helium-browser";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Manages the Windows VM (see windows-vm.nix) declaratively through
     # libvirt, instead of me clicking through virt-manager by hand.
     nixvirt = {

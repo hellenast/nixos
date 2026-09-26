@@ -43,6 +43,9 @@ VLC (video/audio, set as the default app for common media MIME types), Krita, an
 ### `dev.nix`
 Docker (installed but not started at boot — starts on demand the first time `docker` is actually used), the user added to the `docker` group, a Rancher server container for local Kubernetes cluster management (also not auto-started — `systemctl start docker-rancher` when wanted), and CLI/GUI dev tooling: kubectl, helm, the `rancher` CLI, docker-compose/buildx, Cypress (E2E testing), Beekeeper Studio (DB client), Insomnia (API client), plus node/bun/pnpm for frontend (React/Next.js) work. No `services.postgresql` — Postgres for these projects runs per-project via docker-compose instead.
 
+### `ai.nix`
+Claude Code (`claude`), mainly for `claude rc` (remote control) so I can drive a session running on this machine from my phone or claude.ai/code. Its self-updater is off under Nix — it updates with nixpkgs. See Manual Setup below.
+
 ### `amazfit.nix`
 Amazfish (Flatpak) as the companion app for my Amazfit GTR2e watch, a custom-packaged `huami-token` CLI, and an `amazfit-get-key.sh` helper script that fetches the watch's Bluetooth pairing key from Huami/Zepp's servers. See Manual Setup below — this one has real interactive steps every time I re-pair the watch.
 
@@ -188,6 +191,12 @@ Editing an existing secret: `sops secrets/secrets.yaml` (needs `SOPS_AGE_KEY_FIL
 - Not live: Chrome only reads themes at startup, so a scheme change shows up the next time Helium starts. Accents (focus rings, buttons) stay Chrome's blue — themes have no slot for them.
 - First start after the deploy shows an "Installed theme Caelestia" bar once; don't click Undo. Any Chromium policy that sets a theme colour would block this theme ("blocked by the administrator"), which is why `enableChromium` is off.
 
+### ZapZap Caelestia integration (`home.nix`)
+- WhatsApp Web itself: the `zapzap.css` caelestia template, linked into ZapZap's global customizations folder (`~/.local/share/ZapZap/customizations/global/css/caelestia.css`) and switched on in `ZapZap.conf` on every activation — ZapZap's own Customizations feature. It overrides WhatsApp's `--WDS-*` colour variables (variable list from Catppuccin's WhatsApp Web userstyle, mapped onto caelestia's Material roles).
+- ZapZap's own window (menu bar, dialogs): ZapZap hardcodes its Qt palette instead of following the Qt theme, so the package is patched to overlay it with the rendered `zapzap-qt.json` — it builds locally instead of coming from the binary cache.
+- Not live: both are read when ZapZap starts (the CSS also on a page reload, Ctrl+R). The logged-out QR/landing page keeps WhatsApp's cream background — it's hardcoded there, not a variable.
+- Removing `caelestia.css` in ZapZap's Customizations settings only lasts until the next rebuild re-links it; disabling it there (the per-file toggle) sticks.
+
 ### Steam Caelestia integration (`gaming.nix`, `home.nix`)
 - Millennium (Steam client modding framework) plus the Material theme with its Matugen colour option, fed by the `steam-material.css` caelestia template. Colours and light/dark follow scheme changes live — the theme re-reads its colour file every 1.5s.
 - First launch after the deploy: Millennium may show its welcome dialog once. The active theme and colour option are pre-set in `~/.config/millennium/config.json` and re-asserted on every activation, so picking a different theme in Millennium only lasts until the next rebuild.
@@ -197,6 +206,9 @@ Editing an existing secret: `sops secrets/secrets.yaml` (needs `SOPS_AGE_KEY_FIL
 ### Docker / Rancher (`dev.nix`)
 - Both are deliberately not auto-started, to avoid idle resource usage. Just running any `docker` command starts the daemon on demand; Rancher needs `systemctl start docker-rancher` explicitly.
 - First visit to the Rancher GUI (`https://localhost:8443`) will walk through its own first-run admin account setup.
+
+### Claude Code (`ai.nix`)
+- Log in once with `claude` → `/login`, using my claude.ai account (remote control needs a subscription login, not an API key). After that, `claude rc` in any project directory starts a session I can pick up from the Claude app or claude.ai/code.
 
 ### Windows VM / Dubbing AI (`windows-vm.nix`, `audio-routing.nix`)
 - Needs a Windows 10 ISO manually placed at `~/isos/Win10.iso` before the VM can boot for the first time.

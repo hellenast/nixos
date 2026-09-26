@@ -87,6 +87,6 @@ in
     # both turned out to be dead ends. Ships no game files itself; the
     # first run downloads Minecraft from Microsoft under my own account —
     # see Manual setup in README.md.
-    inputs.bedrock-on-linux.packages.${pkgs.system}.default
+    inputs.bedrock-on-linux.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

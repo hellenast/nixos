@@ -13,6 +13,40 @@ let
   vscodeIntegrationVsix = "${vscodeIntegrationDir}/${vscodeIntegrationVsixName}";
   vscodeIntegrationExtensionDir = "soramanew.${lib.removeSuffix ".vsix" vscodeIntegrationVsixName}";
 
+  # Regenerates the extension's themes/caelestia.json from the current scheme
+  # with the extension's own generator (out/theme.js) — exactly what its
+  # activate() does, just earlier. The extension only rewrites that file
+  # once VSCodium has finished starting, after the window was already
+  # painted from the previous file, so every launch after a scheme change
+  # showed the old colours until the next restart. Run before launch (the
+  # codium wrapper below) and on every scheme change (postHook), the file
+  # is already current when VSCodium reads it.
+  vscodeThemeSync = pkgs.writeShellScript "caelestia-vscode-theme-sync" ''
+    ext="$HOME/.vscode-oss/extensions/${vscodeIntegrationExtensionDir}"
+    scheme="''${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/scheme.json"
+    [ -f "$ext/out/theme.js" ] && [ -f "$scheme" ] || exit 0
+    ${pkgs.nodejs}/bin/node -e '
+      const fs = require("fs"), path = require("path");
+      const [ext, schemePath] = process.argv.slice(1);
+      const mod = require(path.join(ext, "out", "theme.js"));
+      const scheme = JSON.parse(fs.readFileSync(schemePath, "utf8"));
+      const colours = Object.fromEntries(Object.entries(scheme.colours).map(([n, c]) => [n, "#" + c]));
+      const out = JSON.stringify((mod.default || mod)(colours));
+      const file = path.join(ext, "themes", "caelestia.json");
+      // Only write on change: the theme file is watched while VSCodium runs.
+      if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== out) fs.writeFileSync(file, out);
+    ' "$ext" "$scheme" || true
+  '';
+
+  # VSCodium with the theme synced right before every launch (its .desktop
+  # entry runs plain `codium`, so this covers launcher starts too).
+  vscodiumCaelestia = pkgs.symlinkJoin {
+    name = "vscodium-caelestia";
+    paths = [ pkgs.vscodium ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = "wrapProgram $out/bin/codium --run ${vscodeThemeSync}";
+  };
+
   # My custom fastfetch logo — a small horned/winged ASCII figure, swapped
   # in for the default NixOS pixel-art logo. I run fastfetch with no other
   # custom config (just its own built-in module list), so this only needs
@@ -315,6 +349,199 @@ let
       }
     }
   '';
+
+  # ZapZap's WhatsApp Web CSS. WhatsApp colours its UI through its design
+  # system's --WDS-* custom properties (each with -RGB/-rgb "r, g, b"
+  # twins, for rgba() use) plus a few older --name/--name-rgb pairs; the
+  # variable list and selectors follow Catppuccin's maintained WhatsApp Web
+  # userstyle (catppuccin/userstyles, styles/whatsapp-web). Mapped onto
+  # caelestia's Material roles rather than the scheme's Catppuccin-named
+  # keys: in dark dynamic schemes those collapse (base/mantle/crust are all
+  # near-black, and overlay2 — Catppuccin's secondary-text colour — too), so
+  # secondary text would vanish. Translucent ones use rgb(... / alpha) with
+  # the base colour's triplet, same as the userstyle's fade().
+  zapzapTemplate = let
+    triplet = c: "{{ ${c}.red }}, {{ ${c}.green }}, {{ ${c}.blue }}";
+    wdsSolid = {
+      accent = "primary";
+      accent-emphasized = "primaryFixed";
+      secondary-negative = "error";
+      secondary-negative-emphasized = "error";
+      secondary-positive = "success";
+      secondary-warning = "yellow";
+      content-default = "onSurface";
+      content-deemphasized = "onSurfaceVariant";
+      content-on-accent = "onPrimary";
+      content-action-default = "primary";
+      content-action-emphasized = "primaryFixed";
+      content-external-link = "blue";
+      content-inverse = "surface";
+      content-read = "blue";
+      background-wash-inset = "surface";
+      background-wash-plain = "surface";
+      background-elevated-wash-plain = "surface";
+      background-elevated-wash-inset = "surface";
+      modal-backdrop-solid = "surface";
+      surface-default = "surfaceContainerLow";
+      surface-emphasized = "surfaceContainer";
+      surface-elevated-default = "surfaceContainer";
+      surface-elevated-emphasized = "surfaceContainerHighest";
+      surface-inverse = "onSurface";
+      lines-outline-default = "outlineVariant";
+      persistent-always-branded = "primary";
+      systems-bubble-surface-incoming = "surfaceContainerHigh";
+      systems-bubble-surface-outgoing = "secondaryContainer";
+      systems-bubble-surface-overlay = "surfaceContainerLow";
+      systems-bubble-surface-system = "surfaceContainerLow";
+      systems-bubble-surface-e2e = "surfaceContainerHigh";
+      systems-bubble-content-e2e = "yellow";
+      systems-bubble-surface-business = "surfaceContainerHigh";
+      systems-chat-surface-composer = "surfaceContainer";
+      systems-chat-background-wallpaper = "surface";
+      systems-chat-foreground-wallpaper = "surfaceContainerLow";
+      systems-chat-surface-tray = "surfaceContainer";
+      components-surface-nav-bar = "surfaceContainer";
+      app-wash = "surfaceContainerHigh";
+      white = "surface";
+    };
+    wdsFaded = {
+      accent-deemphasized = [ "primary" "0.3" ];
+      secondary-negative-deemphasized = [ "error" "0.3" ];
+      secondary-positive-deemphasized = [ "success" "0.3" ];
+      secondary-warning-deemphasized = [ "yellow" "0.3" ];
+      content-disabled = [ "onSurface" "0.5" ];
+      background-dimmer = [ "scrim" "0.3" ];
+      surface-highlight = [ "onSurface" "0.2" ];
+      surface-pressed = [ "onSurface" "0.2" ];
+      lines-divider = [ "onSurface" "0.1" ];
+      lines-outline-deemphasized = [ "onSurface" "0.3" ];
+      persistent-activity-indicator = [ "success" "0.9" ];
+      systems-bubble-content-deemphasized = [ "onSurface" "0.5" ];
+      systems-status-seen = [ "onSurface" "0.5" ];
+      components-platform-gesture-bar = [ "surface" "0.5" ];
+      components-platform-status-bar = [ "surface" "0.8" ];
+    };
+    plainSolid = {
+      white = "surface";
+      attachment-type-stickers-color = "green";
+      attachment-type-polls-color = "yellow";
+      attachment-type-contacts-color = "sky";
+      attachment-type-camera-color = "pink";
+      attachment-type-photos-color = "blue";
+      attachment-type-documents-color = "mauve";
+      attachment-type-audio-color = "peach";
+      attachment-type-event-color = "pink";
+      toast-background = "surfaceContainerHighest";
+      toast-text = "onSurface";
+      picker-background = "surfaceContainerHighest";
+      butterbar-blue-nux-background = "sky";
+      blue-light = "blue";
+      gray-500 = "onSurfaceVariant";
+      focus-animation = "primaryContainer";
+      focus-animation-deeper = "secondaryContainer";
+      startup-icon = "surfaceContainerHighest";
+      startup-background = "surface";
+      progress-background = "surfaceContainerHigh";
+      date-picker-text-color = "onSurface";
+    };
+    splash = {
+      splashscreen-startup-background = "surface";
+      splashscreen-startup-icon = "surfaceContainerHigh";
+      splashscreen-primary-title = "onSurface";
+      splashscreen-progress-primary = "primary";
+      splashscreen-progress-background = "surfaceContainerHighest";
+      splashscreen-secondary-lighter = "onSurfaceVariant";
+      startup-icon = "surfaceContainerHighest";
+      startup-background = "surface";
+    };
+    lines = f: set: lib.concatStrings (lib.mapAttrsToList f set);
+  in ''
+    /* Rendered by the caelestia CLI on every scheme change — see
+       zapzapTemplate in ~/nixos/home.nix. The #whatsapp-web ones (the id on
+       WhatsApp's <html>) come first because WhatsApp defines these
+       variables on <html> through doubled atomic classes (.x.x:root) that
+       outrank every class-only selector below — only an id beats them, and
+       without it menus/popovers mounted on <body>, outside the app wrapper,
+       keep WhatsApp's green. The rest are the userstyle's, kept as a
+       fallback. */
+    #whatsapp-web, #whatsapp-web body, #whatsapp-web .app-wrapper-web,
+    :root:has(> :not(.dark)), :root:has(> .dark),
+    :root .color-refresh, .color-refresh, .dark.color-refresh, .color-refresh.dark,
+    .app-wrapper-web.app-wrapper-web, .app-wrapper-web.app-wrapper-web:root,
+    .dark .app-wrapper-web.app-wrapper-web, .dark .app-wrapper-web.app-wrapper-web:root {
+    ${lines (n: c: "  --WDS-${n}: #{{ ${c}.hex }}; --WDS-${n}-RGB: ${triplet c}; --WDS-${n}-rgb: ${triplet c};\n") wdsSolid}${lines (n: v: let c = builtins.elemAt v 0; in "  --WDS-${n}: rgb({{ ${c}.red }} {{ ${c}.green }} {{ ${c}.blue }} / ${builtins.elemAt v 1}); --WDS-${n}-RGB: ${triplet c}; --WDS-${n}-rgb: ${triplet c};\n") wdsFaded}${lines (n: c: "  --${n}: #{{ ${c}.hex }}; --${n}-rgb: ${triplet c};\n") plainSolid}  --background-default: var(--WDS-surface-default);
+      --search-container-background: var(--WDS-surface-default);
+    }
+
+    /* The loading splash, before the app's own variables exist. */
+    [style^="--splashscreen-startup-background"] {
+    ${lines (n: c: "  --${n}: #{{ ${c}.hex }} !important; --${n}-rgb: ${triplet c} !important;\n") splash}}
+
+    [data-icon="wa-wordmark-refreshed"] path { fill: currentcolor; }
+    input[type="time"]::-webkit-datetime-edit-hour-field:focus,
+    input[type="time"]::-webkit-datetime-edit-minute-field:focus,
+    input[type="date"]::-webkit-datetime-edit-year-field:focus,
+    input[type="date"]::-webkit-datetime-edit-month-field:focus,
+    input[type="date"]::-webkit-datetime-edit-day-field:focus {
+      background-color: #{{ primary.hex }};
+      color: #{{ onPrimary.hex }};
+    }
+  '';
+
+  # ZapZap's own window (menu bar, dialogs, settings) doesn't follow the Qt
+  # theme caelestia sets: it hardcodes a light and a dark palette in its
+  # ThemeManager (WhatsApp green highlights included) and applies them with
+  # setPalette + its own stylesheet. So zapzapCaelestia below patches in a
+  # few lines that overlay those dictionaries with this rendered JSON (same
+  # keys as ZapZap's) when it exists, falling back to stock otherwise.
+  zapzapPaletteTemplate = builtins.toJSON (lib.mapAttrs (_: c: "#{{ ${c}.hex }}") {
+    window = "surfaceContainer";
+    text = "onSurface";
+    base = "surfaceContainerHigh";
+    alternate_base = "surfaceContainerHighest";
+    button = "surfaceContainer";
+    button_text = "onSurface";
+    highlight = "primary";
+    highlighted_text = "onPrimary";
+    mid = "outlineVariant";
+    placeholder_text = "onSurfaceVariant";
+    bright_text = "error";
+    accent = "primary";
+    accent_text = "onPrimary";
+    accent_hover = "primaryFixed";
+    accent_border = "primaryFixedDim";
+    success = "success";
+    success_text = "onSuccess";
+    success_hover = "success";
+    success_border = "success";
+    activity = "tertiary";
+    danger = "error";
+    danger_text = "onError";
+    danger_hover = "error";
+    danger_border = "errorContainer";
+  });
+  zapzapCaelestia = pkgs.zapzap.overridePythonAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      cat >> zapzap/core/theme/theme_manager.py <<'EOF'
+
+
+      # Added by ~/nixos/home.nix: palette from the current caelestia scheme.
+      def _caelestia_palette():
+          import json, os
+          state = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
+          try:
+              with open(os.path.join(state, "caelestia", "theme", "zapzap-qt.json")) as f:
+                  colours = json.load(f)
+          except (OSError, ValueError):
+              return
+          ThemeManager._DARK_PALETTE_COLORS = {**ThemeManager._DARK_PALETTE_COLORS, **colours}
+          ThemeManager._LIGHT_PALETTE_COLORS = {**ThemeManager._LIGHT_PALETTE_COLORS, **colours}
+
+
+      _caelestia_palette()
+      EOF
+    '';
+  });
 in
 {
   imports = [
@@ -508,7 +735,8 @@ in
         # block caelestia's own scheme-set command. The `rm` drops Helium's
         # compiled theme so its next start rebuilds it from the freshly
         # rendered one (see clearHeliumThemeCache below).
-        postHook = "$HOME/.local/bin/caelestia-spotify-resync.sh & rm -f '${heliumThemeDir}/Cached Theme.pak'";
+        # vscodeThemeSync keeps VSCodium's theme file current (see the let block).
+        postHook = "$HOME/.local/bin/caelestia-spotify-resync.sh & rm -f '${heliumThemeDir}/Cached Theme.pak'; ${vscodeThemeSync} &";
       };
 
       toggles = {
@@ -680,6 +908,39 @@ in
     $DRY_RUN_CMD rm -f "${heliumThemeDir}/Cached Theme.pak"
   '';
 
+  # --- ZapZap (WhatsApp) theme ---
+  # ZapZap injects every .css file in its global customizations folder into
+  # WhatsApp Web when the page loads — its own "Customizations" feature, the
+  # same one its settings UI manages. So the scheme reaches it as one more
+  # caelestia template (zapzapTemplate up top) linked into that folder.
+  # Like Helium it's read at load time, not live: a scheme change shows up
+  # the next time ZapZap starts (or on a page reload, Ctrl+R). Its own Qt
+  # window (menu bar, dialogs) gets the scheme separately, through
+  # zapzap-qt.json and the zapzapCaelestia patch in the let block.
+  xdg.configFile."caelestia/templates/zapzap.css".text = zapzapTemplate;
+  xdg.configFile."caelestia/templates/zapzap-qt.json".text = zapzapPaletteTemplate;
+  xdg.dataFile."ZapZap/customizations/global/css/caelestia.css".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.xdg.stateHome}/caelestia/theme/zapzap.css";
+
+  # Global CSS is off until switched on (ZapZap's custom/global/css/enabled
+  # setting, false by default). ZapZap owns ZapZap.conf — it rewrites window
+  # geometry and every settings change there — so this only sets that one
+  # key, in QSettings' INI layout ([custom] section, backslash-separated
+  # subkeys), and leaves the rest of the file alone.
+  home.activation.enableZapzapCss = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    conf="${config.xdg.configHome}/ZapZap/ZapZap.conf"
+    $DRY_RUN_CMD mkdir -p "$(dirname "$conf")"
+    [ -e "$conf" ] || $DRY_RUN_CMD touch "$conf"
+    $DRY_RUN_CMD ${pkgs.gawk}/bin/awk '
+      /^\[custom\]$/ { print; print "global\\css\\enabled=true"; found = 1; section = 1; next }
+      /^\[/ { section = 0 }
+      section && /^global\\css\\enabled=/ { next }
+      { print }
+      END { if (!found) { print ""; print "[custom]"; print "global\\css\\enabled=true" } }
+    ' "$conf" > "$conf.tmp" \
+      && $DRY_RUN_CMD mv "$conf.tmp" "$conf"
+  '';
+
   # --- Steam (Millennium) theme ---
   # The Material theme (steamMaterialTheme up top), where Millennium looks
   # for themes, and the template its Matugen option ends up reading.
@@ -756,7 +1017,7 @@ in
 
     bibata-cursors  # cursor theme binary, wired up via home.pointerCursor above
 
-    vscodium  # code editor
+    vscodiumCaelestia  # code editor (VSCodium, with the caelestia theme synced before launch — see the let block)
 
     bitwarden-desktop  # password manager desktop app
 
@@ -795,7 +1056,7 @@ in
     p7zip          # .7z and a bunch of other formats via 7z
     engrampa       # archive-manager backend the Thunar plugin calls out to
 
-    zapzap  # WhatsApp desktop client
+    zapzapCaelestia  # WhatsApp desktop client, patched to take its palette from caelestia (see the let block)
 
     # Wine prefix manager, for Windows apps I don't have a native Linux
     # build for (Rave, so far). Each app gets its own isolated

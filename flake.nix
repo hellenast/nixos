@@ -81,6 +81,18 @@
       url = "github:Wyze3306/BedrockOnLinux";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Millennium, the Steam client modding framework the caelestia Steam
+    # theme runs under (see gaming.nix). Pinned in the URL itself rather than
+    # just in flake.lock, because my deploy command only copies *.nix into
+    # /etc/nixos — /etc/nixos/flake.lock would otherwise lock whatever main
+    # is at deploy time. The rev is the commit that packages release v3.5.0
+    # (upstream bumps packages/nix in a follow-up commit after each release,
+    # so the release tag itself still carries the previous version's
+    # packaging). No nixpkgs `follows` on purpose: its build fetches Bun
+    # dependencies as a fixed-output derivation whose hash only matches the
+    # Bun from its own pinned nixpkgs.
+    millennium.url = "github:SteamClientHomebrew/Millennium/1e65b76114450a505905432bfeae0cf87b6d286e?dir=packages/nix";
   };
 
   outputs = { self, nixpkgs, home-manager, caelestia-shell, caelestia-cli, caelestia-dots-src, zen-browser, ... } @ inputs: let

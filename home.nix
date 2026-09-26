@@ -156,6 +156,165 @@ let
       )
     } $out/hyprland/rules.lua
   '';
+
+  # CaelestiaZen — a community Sine mod (not part of the official dots) that
+  # live-themes Zen from the current caelestia scheme. The official route,
+  # the CaelestiaFox extension + native host in the dots' firefox/ dir,
+  # pushes colours through Firefox's theme API, which Zen mostly ignores —
+  # upstream marks Zen theming as won't-fix (manifest.toml, and
+  # caelestia-dots/caelestia#148 and #424). CaelestiaZen sidesteps that: a
+  # caelestia CLI user template (installed below) renders the scheme into a
+  # CSS file on every scheme change, and the mod's chrome script injects that
+  # file straight into Zen's UI, re-reading it whenever it changes — so it
+  # hot-reloads like everything else here. Pinned by rev + hash instead of
+  # as a flake input on purpose: it runs with full browser privileges, and my
+  # deploy command only copies *.nix into /etc/nixos (not flake.lock), so a
+  # new flake input would get locked to whatever upstream's HEAD happens to
+  # be at deploy time rather than the commit I actually read through.
+  # Bumping it means editing rev/hash by hand, after reading the new
+  # theme-sync.uc.js.
+  caelestiaZen = pkgs.fetchFromGitHub {
+    owner = "dim-ghub";
+    repo = "CaelestiaZen";
+    rev = "aeb0cc00ef5a64e572abb02f94e672a651e5c2f3";
+    hash = "sha256-q4BPInmlJ8vRxwJShYZ9OnBDDLNg7+Qz2Jrh/4i54E4=";
+  };
+
+  # The profile directory Zen created on its own first launch (random prefix
+  # + profile name). Declaring the profile in programs.zen-browser below
+  # makes home-manager own ~/.config/zen/profiles.ini, so this has to match
+  # the existing directory exactly — anything else would point Zen at a
+  # brand-new empty profile (the old one would still be on disk, just no
+  # longer the one in use). On a fresh install home-manager creates this same
+  # directory name itself, so nothing here is tied to this one machine.
+  zenProfilePath = "kn7ftk1l.Default Profile";
+  zenProfileDir = "${config.xdg.configHome}/zen/${zenProfilePath}";
+
+  # A plain Python interpreter that can import the caelestia CLI's own
+  # modules — the CLI's site-packages plus its Python dependencies, the same
+  # set its own wrapper loads — so renderCaelestiaTemplates below can render
+  # my user templates through the CLI's real code path.
+  caelestiaCliPython = let
+    cli = config.programs.caelestia.cli.package;
+    python = lib.findFirst (p: (p.pname or "") == "python3") pkgs.python3 cli.propagatedBuildInputs;
+    modules = python.pkgs.requiredPythonModules (builtins.filter (p: p ? pythonModule) cli.propagatedBuildInputs);
+  in pkgs.writeShellScript "caelestia-cli-python" ''
+    export PYTHONPATH=${lib.makeSearchPath python.sitePackages ([ cli ] ++ modules)}
+    exec ${python.interpreter} "$@"
+  '';
+
+  # Material, the Millennium theme for Steam (Millennium itself is in
+  # gaming.nix), pinned by rev + hash like CaelestiaZen and for the same
+  # reason: it runs JavaScript inside the Steam client. Its "Matugen" colour
+  # option re-fetches css/main/colors/matugen.css every 1.5s and applies it
+  # live, so that one file is swapped for a symlink to the copy the caelestia
+  # CLI renders from steamMaterialTemplate below — Steam then follows scheme
+  # changes without a restart, same as Zen.
+  steamMaterialTheme = pkgs.runCommand "steam-material-theme-caelestia" { } ''
+    cp -r --no-preserve=mode ${pkgs.fetchFromGitHub {
+      owner = "kuska1";
+      repo = "Material-Theme";
+      rev = "f91b4e9cbc5436f149e6b293391a9a96ab47fbe9";
+      hash = "sha256-qPzo59NyKsmKkhupOf3n9X29p/Wbv7jaKDGaM23HTJo=";
+    }} $out
+    ln -sf ${config.xdg.stateHome}/caelestia/theme/steam-material.css $out/css/main/colors/matugen.css
+  '';
+
+  # Every --md-sys-color-* variable the Material theme reads, named the way
+  # caelestia's scheme names them (camelCase — the template below converts
+  # to the theme's kebab-case). Its own matugen.css uses full `rgb(...)`
+  # values, which is exactly what the CLI's `.rgb` gives.
+  steamMaterialColours = [
+    "background" "error" "errorContainer" "inverseOnSurface" "inversePrimary" "inverseSurface"
+    "onBackground" "onError" "onErrorContainer" "onPrimary" "onPrimaryContainer" "onPrimaryFixed"
+    "onPrimaryFixedVariant" "onSecondary" "onSecondaryContainer" "onSecondaryFixed"
+    "onSecondaryFixedVariant" "onSurface" "onSurfaceVariant" "onTertiary" "onTertiaryContainer"
+    "onTertiaryFixed" "onTertiaryFixedVariant" "outline" "outlineVariant" "primary"
+    "primaryContainer" "primaryFixed" "primaryFixedDim" "scrim" "secondary" "secondaryContainer"
+    "secondaryFixed" "secondaryFixedDim" "shadow" "surface" "surfaceBright" "surfaceContainer"
+    "surfaceContainerHigh" "surfaceContainerHighest" "surfaceContainerLow" "surfaceContainerLowest"
+    "surfaceDim" "surfaceTint" "surfaceVariant" "tertiary" "tertiaryContainer" "tertiaryFixed"
+    "tertiaryFixedDim"
+  ];
+  steamMaterialTemplate = let
+    kebab = name: lib.concatMapStrings (c: if c != lib.toLower c then "-${lib.toLower c}" else c) (lib.stringToCharacters name);
+  in ''
+    /* Rendered by the caelestia CLI on every scheme change — see
+       steamMaterialTheme in ~/nixos/home.nix. */
+    :root {
+      --theme-color: "Matugen";
+      /* The theme hue-rotates a few of its images by this; its built-in
+         colour presets all sit at roughly (preset hue - 215deg). */
+      --hue-rotate: calc({{ primary.hue }}deg - 215deg);
+      --md-sys-color-source-color: {{ primary_paletteKeyColor.rgb }};
+    ${lib.concatMapStrings (n: "  --md-sys-color-${kebab n}: {{ ${n}.rgb }};\n") steamMaterialColours}}
+
+    /* Light/dark follows the scheme too, overriding the theme's own
+       Appearance option: the same variables its appearance/{dark,light}.css
+       set, with the doubled :root winning on specificity whichever order
+       Millennium injects the two in. --ON/--OFF are the theme's own
+       space-toggle values, picked per mode through --caelestia-*-if-<mode>. */
+    :root:root {
+      color-scheme: only {{ mode }} !important;
+      --scheme: {{ mode }};
+      --caelestia-light-if-light: var(--ON);
+      --caelestia-light-if-dark: var(--OFF);
+      --caelestia-dark-if-light: var(--OFF);
+      --caelestia-dark-if-dark: var(--ON);
+      --scheme-light: var(--caelestia-light-if-{{ mode }});
+      --scheme-dark: var(--caelestia-dark-if-{{ mode }});
+      --caelestia-colour-if-light: white;
+      --caelestia-colour-if-dark: black;
+      --scheme-color: var(--caelestia-colour-if-{{ mode }});
+      --caelestia-inverse-if-light: black;
+      --caelestia-inverse-if-dark: white;
+      --scheme-color-inverse: var(--caelestia-inverse-if-{{ mode }});
+    }
+  '';
+
+  # Helium's generated Chrome theme (see the Helium section for why a theme
+  # rather than caelestia's colour policy). Chrome wants [r, g, b] arrays,
+  # hence the CLI's .red/.green/.blue. The version is built from a few
+  # colours so a scheme change reads as a theme update to Chrome.
+  heliumThemeDir = "${config.xdg.stateHome}/caelestia/helium-theme";
+  heliumThemeTemplate = let
+    rgb = c: "[{{ ${c}.red }}, {{ ${c}.green }}, {{ ${c}.blue }}]";
+    # Chrome theme slot -> caelestia scheme colour. Same layering as
+    # caelestia's own surfaces: frame darkest-but-one, toolbar/omnibox a
+    # step up each, the new tab page the base surface.
+    slots = {
+      frame = "surfaceContainer";
+      frame_inactive = "surfaceContainer";
+      frame_incognito = "surfaceContainer";
+      frame_incognito_inactive = "surfaceContainer";
+      toolbar = "surfaceContainerHigh";
+      toolbar_text = "onSurface";
+      toolbar_button_icon = "onSurfaceVariant";
+      tab_text = "onSurface";
+      tab_background_text = "onSurfaceVariant";
+      tab_background_text_inactive = "onSurfaceVariant";
+      bookmark_text = "onSurface";
+      omnibox_background = "surfaceContainerHighest";
+      omnibox_text = "onSurface";
+      button_background = "surfaceContainerHighest";
+      ntp_background = "surface";
+      ntp_text = "onSurface";
+      ntp_link = "primary";
+      ntp_header = "primary";
+    };
+  in ''
+    {
+      "manifest_version": 3,
+      "name": "Caelestia",
+      "description": "Generated by the caelestia CLI from the current scheme.",
+      "version": "{{ surfaceContainer.hue }}.{{ surfaceContainer.lightness }}.{{ primary.hue }}.{{ primary.lightness }}",
+      "theme": {
+        "colors": {
+          ${lib.concatStringsSep ",\n      " (lib.mapAttrsToList (slot: c: ''"${slot}": ${rgb c}'') slots)}
+        }
+      }
+    }
+  '';
 in
 {
   imports = [
@@ -324,6 +483,11 @@ in
         enableGtk = true;
         enableQt = true;
         enableZed = false;  # Zed isn't installed — nothing to theme
+        # Its Chromium theming writes a BrowserThemeColor policy into /etc
+        # with `sudo -n tee`, only knows chromium/brave/chrome by name — and a
+        # policy theme would also block the generated Chrome theme Helium
+        # uses instead (see the Helium section below).
+        enableChromium = false;
         iconTheme = "Papirus-Dark";
         iconThemeLight = "Papirus-Light";
         iconThemeDark = "Papirus-Dark";
@@ -341,8 +505,10 @@ in
         # it auto-launch/restart in the background, which was surprising me
         # by popping Spotify open on its own after a rebuild even when I
         # hadn't had it running. Backgrounded (trailing &) so it doesn't
-        # block caelestia's own scheme-set command.
-        postHook = "$HOME/.local/bin/caelestia-spotify-resync.sh &";
+        # block caelestia's own scheme-set command. The `rm` drops Helium's
+        # compiled theme so its next start rebuilds it from the freshly
+        # rendered one (see clearHeliumThemeCache below).
+        postHook = "$HOME/.local/bin/caelestia-spotify-resync.sh & rm -f '${heliumThemeDir}/Cached Theme.pak'";
       };
 
       toggles = {
@@ -399,12 +565,163 @@ in
   programs.zen-browser = {
     enable = true;
     setAsDefaultBrowser = true;
+
+    profiles.default = {
+      id = 0;
+      name = "Default Profile";
+      path = zenProfilePath;
+      # storeId deliberately left unset: the profiles.ini Zen generated
+      # itself (the one this replaces) had no StoreID line either, so this
+      # reproduces it exactly rather than opting the profile into Firefox's
+      # newer profile-groups handling.
+
+      # The dots' zen/userChrome.css. Purely cosmetic — its colour-mapping
+      # section is commented out upstream; colours come from CaelestiaZen
+      # instead. What's left: URL bar text centered when unfocused, a pop-in
+      # animation for the floating URL bar, rounded search-engine buttons,
+      # unloaded tabs dimmed to grayscale, and a small press animation on
+      # buttons/tabs. readFile rather than a "${dots}/..." path string: a
+      # plain string here is taken as the CSS itself.
+      userChrome = builtins.readFile "${dots}/zen/userChrome.css";
+
+      # Sine: the userChrome-JS mod loader CaelestiaZen runs under. The flake
+      # handles it declaratively — copies Sine's bootloader into the Zen
+      # package and links its (pinned) engine into the profile's chrome/JS.
+      sine.enable = true;
+
+      settings = {
+        # Firefox-family browsers ignore userChrome.css without this (the
+        # dots' own firefox/user.js sets the same pref for the same reason).
+        "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+
+        # Sine updates itself by default: it downloads an updater binary from
+        # GitHub, runs it, and overwrites chrome/JS — files that are
+        # Nix-managed here, pinned by the zen-browser flake input. Off, so
+        # Sine only ever changes through `nix flake update`. The second pref
+        # does the same for mods (CaelestiaZen is also marked no-updates in
+        # registerCaelestiaZen below).
+        "sine.engine.auto-update" = false;
+        "sine.auto-updates" = false;
+
+        # Where the CLI renders the template below. Has to be set explicitly:
+        # the mod only honours this pref once it has a user value (which Sine
+        # only writes when the mod's settings page is first opened), and
+        # otherwise falls back to a path hardcoded to its author's home
+        # (/home/dim/...) — so out of the box it silently never finds the
+        # file.
+        "caelestia.zen-sync.chrome-path" = "${config.xdg.stateHome}/caelestia/theme/zen-browser.css";
+
+        # Theme only the browser UI, same scope as caelestia's own Firefox
+        # integration. The mod's default also tints every website via Zen
+        # Boosts, which changes how every site looks.
+        "caelestia.zen-sync.boost-enabled" = false;
+      };
+    };
   };
 
+  # The CaelestiaZen mod files, straight from the pinned source. Only this
+  # one subdirectory is linked, not sine-mods/ itself: Sine writes its own
+  # mods.json/chrome.css/content.css in there at runtime, so that directory
+  # has to stay writable.
+  xdg.configFile."zen/${zenProfilePath}/chrome/sine-mods/caelestia-zen".source = caelestiaZen;
+
+  # The caelestia CLI renders every file in ~/.config/caelestia/templates
+  # into ~/.local/state/caelestia/theme on each scheme change ({{ surface.hex }}
+  # style placeholders) — that rendered copy is what the mod watches.
+  xdg.configFile."caelestia/templates/zen-browser.css".source = "${caelestiaZen}/templates/zen-browser.css";
+
+  # Sine only loads mods listed in sine-mods/mods.json, which it also edits
+  # itself at runtime (enable toggles, its own metadata), so it can't be a
+  # read-only Nix symlink. This merges CaelestiaZen's entry into whatever's
+  # already there on every activation. origin = "store" is what lets Sine run
+  # the mod's script at all: it only runs JS from store-installed mods unless
+  # the global sine.allow-unsafe-js pref is on, and flipping that would allow
+  # JS from *any* mod, not just this one.
+  home.activation.registerCaelestiaZen = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    mods="${zenProfileDir}/chrome/sine-mods/mods.json"
+    $DRY_RUN_CMD mkdir -p "$(dirname "$mods")"
+    [ -s "$mods" ] || $DRY_RUN_CMD cp --no-preserve=mode ${pkgs.writeText "sine-mods-empty.json" "{}"} "$mods"
+    $DRY_RUN_CMD ${pkgs.jq}/bin/jq --slurpfile mod "${caelestiaZen}/theme.json" \
+      '.["caelestia-zen"] = ((.["caelestia-zen"] // {}) + $mod[0] + { enabled: true, origin: "store", "no-updates": true })' \
+      "$mods" > "$mods.tmp" \
+      && $DRY_RUN_CMD mv "$mods.tmp" "$mods"
+  '';
+
   # --- Helium browser ---
+  # Themed with a Chrome theme generated from the scheme (heliumThemeTemplate
+  # up top), loaded unpacked on every start. I first used caelestia's own
+  # approach, Chromium's BrowserThemeColor policy, but Chrome turns that
+  # into an auto-generated theme and clamps its lightness: tested, even the
+  # scheme's darkest surface as the seed only got the frame down to about
+  # rgb(81,42,42), far lighter than caelestia's near-black. A theme sets the
+  # exact colours instead. Trade-offs: Chrome only reads it at startup, so a
+  # scheme change shows up the next time Helium starts, not live; and
+  # themes have no accent slot, so focus rings/buttons keep Chrome's blue.
   programs.helium = {
     enable = true;
+    flags = [ "--load-extension=${heliumThemeDir}" ];
   };
+
+  # The CLI renders the manifest into ~/.local/state/caelestia/theme with the
+  # other templates; Chrome needs it named manifest.json inside a directory
+  # of its own, and writes its compiled copy ("Cached Theme.pak") next to it
+  # — so that directory is a real one, with only the manifest linked in.
+  xdg.configFile."caelestia/templates/helium-theme.json".text = heliumThemeTemplate;
+  xdg.stateFile."caelestia/helium-theme/manifest.json".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.xdg.stateHome}/caelestia/theme/helium-theme.json";
+
+  # Chrome only rebuilds that compiled copy when it sees a new theme
+  # version, and the version (see heliumThemeTemplate) is derived from a few
+  # colours, so a scheme differing only elsewhere could keep the stale one.
+  # Dropping it after every render makes the next start always rebuild from
+  # the current manifest — here for activation, and in the CLI's postHook
+  # for scheme changes.
+  home.activation.clearHeliumThemeCache = lib.hm.dag.entryAfter [ "renderCaelestiaTemplates" ] ''
+    $DRY_RUN_CMD rm -f "${heliumThemeDir}/Cached Theme.pak"
+  '';
+
+  # --- Steam (Millennium) theme ---
+  # The Material theme (steamMaterialTheme up top), where Millennium looks
+  # for themes, and the template its Matugen option ends up reading.
+  xdg.dataFile."Steam/millennium/themes/Material-Theme".source = steamMaterialTheme;
+  xdg.configFile."caelestia/templates/steam-material.css".text = steamMaterialTemplate;
+
+  # Millennium owns its config.json (settings changed in its UI land there),
+  # so like mods.json for Zen this merges in only what the integration needs
+  # on every activation: Material as the active theme, its colour option set
+  # to Matugen, and update checks off — Millennium and the theme are pinned
+  # here and move with this repo, so their in-app update prompts would only
+  # point at versions Nix won't install. Everything else is left to
+  # Millennium, which fills its own defaults in around these keys.
+  home.activation.configureMillennium = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    cfg="${config.xdg.configHome}/millennium/config.json"
+    $DRY_RUN_CMD mkdir -p "$(dirname "$cfg")"
+    [ -s "$cfg" ] || $DRY_RUN_CMD cp --no-preserve=mode ${pkgs.writeText "millennium-empty.json" "{}"} "$cfg"
+    $DRY_RUN_CMD ${pkgs.jq}/bin/jq '
+      .themes.activeTheme = "Material-Theme"
+      | .themes.conditions["Material-Theme"].Color = "Matugen"
+      | .general.checkForMillenniumUpdates = false
+      | .general.checkForPluginAndThemeUpdates = false
+    ' "$cfg" > "$cfg.tmp" \
+      && $DRY_RUN_CMD mv "$cfg.tmp" "$cfg"
+  '';
+
+  # --- caelestia user templates ---
+  # The CLI only renders ~/.config/caelestia/templates on a scheme change,
+  # so a template added or changed here would do nothing until the next
+  # wallpaper/scheme switch — which is exactly why Zen showed no colours
+  # after the first deploy. This renders them once per activation with the
+  # CLI's own apply_user_templates() and the current scheme, i.e. the same
+  # output a scheme change would produce, without re-applying everything
+  # else a real one does. Runs after linkGeneration so the template
+  # symlinks are already in place. Non-fatal: if a CLI update ever moves
+  # these functions, the next real scheme change still renders everything.
+  home.activation.renderCaelestiaTemplates = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    if [ -f "${config.xdg.stateHome}/caelestia/scheme.json" ]; then
+      $DRY_RUN_CMD ${caelestiaCliPython} -c 'from caelestia.utils.scheme import get_scheme; from caelestia.utils.theme import apply_user_templates; s = get_scheme(); apply_user_templates(s.colours, s.mode)' \
+        || echo "renderCaelestiaTemplates: rendering failed; templates render on the next scheme change instead" >&2
+    fi
+  '';
 
   # --- Kitty ---
   # Font + a bit of background transparency. Deliberately NOT tagging kitty
@@ -866,12 +1183,6 @@ in
     <dead_acute> <c> : "ç" U00E7
     <dead_acute> <C> : "Ç" U00C7
   '';
-
-  # --- Known gap: Zen browser theming ---
-  # dots/zen ships userChrome/userContent files, but they're dead weight —
-  # Zen theming doesn't actually work upstream (manifest.toml says so
-  # itself, and there's no apply_zen anywhere in the CLI), so I'm not wiring
-  # any of it up.
 
   # --- Known gap: dead-key compose in Electron apps ---
   # ~/.XCompose above (and its ' + c -> ç override) works correctly in

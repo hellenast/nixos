@@ -694,6 +694,31 @@ in
     # hypr-user.lua below instead, since that's the path that's actually live.
     systemd.enable = false;
 
+    # The "Keep awake" toggle (utilities panel) is meant to stop the shell's
+    # own idle timeouts (lock at 3min, dpms off at 5min, ...) from firing.
+    # Upstream does that indirectly: services/IdleInhibitor.qml puts a
+    # Wayland idle inhibitor on a 0x0 PanelWindow, and the IdleMonitors are
+    # supposed to respect it. But a 0x0 window never gets a buffer, so its
+    # layer surface is never mapped, and Hyprland only honours inhibitors on
+    # mapped surfaces (see recheckIdleInhibitorStatus() in Hyprland's
+    # src/managers/input/IdleInhibitor.cpp). The toggle flips, but nothing is
+    # inhibited — it only *seemed* to work sometimes because
+    # general.idle.inhibitWhenAudio pauses the timeouts while media plays.
+    # This makes IdleMonitors check the toggle directly instead, so it no
+    # longer depends on how Hyprland treats the invisible window. Qualified
+    # import because that file also imports Quickshell.Wayland, which has its
+    # own (non-singleton) IdleInhibitor type with the same name.
+    package = inputs.caelestia-shell.packages.${pkgs.stdenv.hostPlatform.system}.with-cli.overrideAttrs (old: {
+      postPatch = (old.postPatch or "") + ''
+        substituteInPlace modules/IdleMonitors.qml \
+          --replace-fail 'import qs.services' 'import qs.services
+        import qs.services as Services' \
+          --replace-fail 'readonly property bool enabled: {' 'readonly property bool enabled: {
+                if (Services.IdleInhibitor.enabled)
+                    return false;'
+      '';
+    });
+
     # Deliberately NOT using this module's `settings` option for shell.json
     # — see seedCaelestiaShellConfig below for why. shell.json is seeded
     # from caelestiaShellSettings (defined in the `let` block up top)

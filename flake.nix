@@ -123,6 +123,7 @@
         ./amazfit.nix
         ./media.nix
         ./dev.nix
+        ./ai.nix
         ./protonvpn.nix
         ./tor.nix
         ./secrets.nix

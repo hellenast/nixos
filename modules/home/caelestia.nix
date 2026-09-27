@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, isLaptop, ... }:
 
 # caelestia-shell (bar, launcher, lock screen, notifications, wallpaper
 # picker, ...) and caelestia-cli, which drives its dynamic theming: on every
@@ -11,14 +11,16 @@
 # dconf, sudo rule for papirus-folders) are in desktop/caelestia.nix.
 let
   # Initial ~/.config/caelestia/shell.json. Seeded once instead of managed —
-  # see seedCaelestiaShellConfig below.
+  # see seedCaelestiaShellConfig below. Brightness (bar scrolling, the OSD)
+  # and the battery icon are on only on laptops (isLaptop in the machine's
+  # hosts/<name>/variables.nix): the desktop has no backlight or battery.
   caelestiaShellSettings = {
-    bar.scrollActions.brightness = false;
+    bar.scrollActions.brightness = isLaptop;
     # Which status icons show in the bar. The schema's `statusIcons` list
     # replaced the older `bar.status` object (an unknown key there is what
     # triggers the shell's "unknown config" notification). Reloads replace
     # the whole list rather than merging by id, so every default entry has
-    # to be listed, even though only battery differs from its default.
+    # to be listed, even though only battery can differ from its default.
     bar.statusIcons = [
       { id = "lockStatus"; enabled = true; }
       { id = "audio"; enabled = true; }
@@ -26,7 +28,7 @@ let
       { id = "kbLayout"; enabled = false; }
       { id = "network"; enabled = true; }
       { id = "bluetooth"; enabled = true; }
-      { id = "battery"; enabled = false; }
+      { id = "battery"; enabled = isLaptop; }
     ];
     # Which modules show in the bar — same list shape, and the full default
     # list for the same reason.
@@ -41,7 +43,7 @@ let
       { id = "statusIcons"; enabled = true; }
       { id = "power"; enabled = true; }
     ];
-    osd.enableBrightness = false;
+    osd.enableBrightness = isLaptop;
     # Celsius and 24-hour time regardless of locale (both default to a
     # locale-based guess).
     services.useFahrenheit = false;

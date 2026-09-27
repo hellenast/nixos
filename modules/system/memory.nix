@@ -1,7 +1,8 @@
 { ... }:
 
-# Memory pressure handling, for a machine with 60GB of RAM: avoid pointless
-# disk swapping, and stay responsive if something eats all of it anyway.
+# Memory pressure handling: avoid pointless disk swapping, and stay
+# responsive if something eats all the RAM anyway. Tuned on the desktop's
+# 60GB, but nothing here depends on that much.
 {
   # Default is 60, which starts swapping idle pages out well before memory
   # is actually tight — wasted I/O with this much RAM. 10 means "swap only

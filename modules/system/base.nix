@@ -1,8 +1,8 @@
-{ pkgs, username, userDescription, hostname, timeZone, defaultLocale, consoleKeyMap, ... }:
+{ lib, pkgs, username, userDescription, hostname, timeZone, defaultLocale, consoleKeyMap, ... }:
 
 # The basics every install of this config needs: machine identity, locale,
 # the user account and a few CLI tools. All the values come from
-# variables.nix.
+# variables.nix and the machine's hosts/<name>/variables.nix.
 {
   # --- Networking ---
   networking.hostName = hostname;
@@ -12,9 +12,18 @@
   time.timeZone = timeZone;
   i18n.defaultLocale = defaultLocale;
 
-  # TTY keymap, matching the intl dead-key layout Hyprland uses
-  # (home/hyprland.nix). Only affects plain virtual consoles.
+  # TTY keymap, matching the layout Hyprland uses (home/hyprland.nix). Only
+  # affects plain virtual consoles.
   console.keyMap = consoleKeyMap;
+
+  # The LUKS passphrase is typed in the initrd, before that keymap normally
+  # loads, so the kernel's built-in US layout reads it. With a non-US
+  # keyboard (the laptops' ABNT2), the keymap is loaded there too, so the
+  # passphrase is typed the way the keys say; fresh-install.sh switches the
+  # live ISO to the same keymap before disko asks for it. US-based keymaps
+  # (the desktop's us-acentos) are left out: the built-in US map types the
+  # same characters, without dead keys getting in the way of a passphrase.
+  console.earlySetup = !(consoleKeyMap == "us" || lib.hasPrefix "us-" consoleKeyMap);
 
   # --- User ---
   # More groups are added by the modules that need them (docker in

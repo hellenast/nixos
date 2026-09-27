@@ -5,13 +5,13 @@
 The repo lives in `~/nixos`; the system is built from a copy in `/etc/nixos`:
 
 ```
-sudo rm -rf /etc/nixos/modules && sudo cp -r ~/nixos/*.nix ~/nixos/modules ~/nixos/secrets /etc/nixos/ && cd /etc/nixos && sudo nixos-rebuild switch --flake .#
+sudo rm -rf /etc/nixos/modules /etc/nixos/hosts && sudo cp -r ~/nixos/*.nix ~/nixos/modules ~/nixos/hosts ~/nixos/secrets /etc/nixos/ && cd /etc/nixos && sudo nixos-rebuild switch --flake .#
 ```
 
-- `*.nix` picks up `flake.nix` and `variables.nix`; `modules/` and `secrets/` are copied whole. `secrets/secrets.yaml` is encrypted, so copying it around is fine ([secrets.md](secrets.md)).
-- `/etc/nixos/modules` is cleared first so a module deleted or renamed in the repo doesn't linger there.
+- `*.nix` picks up `flake.nix` and `variables.nix`; `modules/`, `hosts/` and `secrets/` are copied whole. `secrets/secrets.yaml` is encrypted, so copying it around is fine ([secrets.md](secrets.md)).
+- `/etc/nixos/modules` and `/etc/nixos/hosts` are cleared first so a module or machine deleted or renamed in the repo doesn't linger there.
 - **`flake.lock` is not copied.** `/etc/nixos` keeps its own lock file, and that's the one the build uses. A new flake input gets locked to whatever its upstream is at deploy time — which is why security-sensitive pins (Millennium, CaelestiaZen, the Steam theme) are pinned by rev in the `.nix` files themselves rather than only in `flake.lock`. To deploy input updates made with `update-flake.sh`, copy `~/nixos/flake.lock` into `/etc/nixos` as well.
-- `nixos-rebuild switch --flake .#` (no name after `#`) builds the `nixosConfigurations` entry matching the machine's actual hostname, so it only works on a host whose hostname matches `hostname` in `variables.nix`.
+- `nixos-rebuild switch --flake .#` (no name after `#`) builds the `nixosConfigurations` entry matching the machine's actual hostname: its folder in `hosts/` ([machines.md](machines.md)). The same command works on every machine.
 
 After the first deploy on a new machine, log out and back in once: group memberships (`docker`, `libvirtd`, `wheel`, ...) only take effect on the next login.
 

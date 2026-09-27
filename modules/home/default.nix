@@ -62,7 +62,8 @@
   ];
 
   # --- Keyboard: ' + c gives ç ---
-  # The intl layout's dead acute + c gives ć by default. `include "%L"`
+  # Dead acute + c gives ć by default, on the desktop's US intl layout and
+  # the laptops' ABNT2 alike (ABNT2 has its own ç key too). `include "%L"`
   # keeps every other sequence for the locale (á, ã, ü, ...) and overrides
   # just this one. Read by libxkbcommon on both X11 and Wayland.
   #
@@ -99,7 +100,7 @@
 
       echo
       echo "Review the changes above, then deploy with (see docs/deploying.md):"
-      echo "  sudo rm -rf /etc/nixos/modules && sudo cp -r ~/nixos/*.nix ~/nixos/modules ~/nixos/secrets /etc/nixos/ && cd /etc/nixos && sudo nixos-rebuild switch --flake .#"
+      echo "  sudo rm -rf /etc/nixos/modules /etc/nixos/hosts && sudo cp -r ~/nixos/*.nix ~/nixos/modules ~/nixos/hosts ~/nixos/secrets /etc/nixos/ && cd /etc/nixos && sudo nixos-rebuild switch --flake .#"
     '';
   };
 }

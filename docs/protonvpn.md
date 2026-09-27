@@ -30,7 +30,7 @@ This opens the decrypted contents in `$EDITOR`. Replace the `protonvpn-conf` val
 The normal deploy ([deploying.md](deploying.md)) — it copies `secrets/` along with the modules:
 
 ```
-sudo rm -rf /etc/nixos/modules && sudo cp -r ~/nixos/*.nix ~/nixos/modules ~/nixos/secrets /etc/nixos/ && cd /etc/nixos && sudo nixos-rebuild switch --flake .#
+sudo rm -rf /etc/nixos/modules /etc/nixos/hosts && sudo cp -r ~/nixos/*.nix ~/nixos/modules ~/nixos/hosts ~/nixos/secrets /etc/nixos/ && cd /etc/nixos && sudo nixos-rebuild switch --flake .#
 ```
 
 Swapping in a new config when everything is already deployed still needs this rebuild: sops-nix only decrypts during activation, so copying `secrets.yaml` alone doesn't update `/run/secrets/protonvpn.conf`. Then restart the tunnel (step 4).

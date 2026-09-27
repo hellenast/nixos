@@ -2,6 +2,12 @@
 result
 result-*
 
+# age private keys, if one is kept next to the repo (e.g. on the install
+# stick, for fresh-install.sh). The encrypted secrets are in secrets/.
+key.txt
+keys.txt
+*.agekey
+
 # direnv, if this repo ever gets a .envrc
 .direnv/
 

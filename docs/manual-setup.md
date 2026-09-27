@@ -11,9 +11,9 @@ Topic pages:
 
 ## Every fresh install / new machine
 
-- Regenerate `modules/system/hardware-configuration.nix` for the actual hardware (`nixos-generate-config`).
-- Update `variables.nix` — at least `username`/`userDescription`/`hostname`; monitors and cursor theme too if they differ ([getting-started.md](getting-started.md)).
-- Put the age private key in place *before* the first rebuild that uses `system/secrets.nix` ([secrets.md](secrets.md)).
+- Generate the machine's `hosts/<name>/hardware-configuration.nix` for the actual hardware (`nixos-generate-config`; `fresh-install.sh` does).
+- Check the machine's `hosts/<name>/variables.nix` — laptop or not, GPUs, keyboard, monitor names ([machines.md](machines.md)) — and `variables.nix` for what they all share.
+- Put the age private key in place *before* the first rebuild that uses `system/secrets.nix` ([secrets.md](secrets.md)). `fresh-install.sh` does, if the key is on the install stick.
 - Log out and back in once after the first deploy — group memberships (`docker`, `libvirtd`, `wheel`, `video`, `audio`) only apply at login.
 
 ## Amazfit watch (`apps/amazfit.nix`)

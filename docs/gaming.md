@@ -6,6 +6,10 @@ Modules: `modules/gaming/`. The Steam client's caelestia theme is covered in [th
 
 - Applies automatically to anything launched through Steam. For anything else, add `gamemoderun %command%` to the game's launch options.
 
+## The NVIDIA laptop (`system/gpu.nix`)
+
+- On `hyena-lt-work`, games run on the AMD integrated graphics unless offloaded to the NVIDIA GPU: set a Steam game's launch options to `nvidia-offload %command%` (with GameMode too: `nvidia-offload gamemoderun %command%`), and start anything else with `nvidia-offload <command>`. See [machines.md](machines.md#nvidia-hyena-lt-work).
+
 ## Minecraft Java Edition (`minecraft.nix`)
 
 - `prismlauncher` installs the launcher only. Signing in with a Microsoft account and creating/configuring instances (vanilla or modded, version + mod loader) happen inside it on first use.

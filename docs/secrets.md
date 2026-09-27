@@ -6,7 +6,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) (`modules
 
 `secrets/secrets.yaml` is encrypted for one age public key, declared in `.sops.yaml`. It's safe to keep in a public repo — only the matching private key can decrypt it, and that key never touches the repo. At system activation, sops-nix decrypts each secret into a root-only file under `/run/secrets/` (a tmpfs, gone on reboot), so nothing secret ever lands in the world-readable Nix store.
 
-Because decryption happens during activation, the private key must already be on disk at `/var/lib/sops-nix/key.txt` (root-only, `0400`) **before** the first rebuild that uses it. Nix can't put it there. On a fresh install, `fresh-install.sh` disables the secrets modules until the key is back ([installing.md](installing.md)).
+Because decryption happens during activation, the private key must already be on disk at `/var/lib/sops-nix/key.txt` (root-only, `0400`) **before** the first rebuild that uses it. Nix can't put it there. On a fresh install, `fresh-install.sh` puts it there if it finds it on the install stick, and otherwise leaves the secrets modules out until the key is back ([installing.md](installing.md)).
 
 ## Installing the key on a machine
 

@@ -1,25 +1,27 @@
 # Modules
 
-What each file does. Paths are relative to `modules/`. System modules are listed in `default.nix`; home-manager modules in `home/default.nix`.
+What each file does. Paths are relative to `modules/`. System modules are listed in `default.nix`; home-manager modules in `home/default.nix`. `fresh-install.sh` shows these descriptions in its module picker, so keep each entry's ``- **`file.nix`** — description`` shape.
 
 **Where things go.** A feature that's purely user-level lives under `home/`. A feature that needs system-level config keeps both halves in one NixOS module under the matching folder, using a `home-manager.users.<name>` block for the user half (`desktop/thunar.nix`, `gaming/steam.nix`, `apps/amazfit.nix`), so dropping that one file removes the whole feature. Modules that need another flake's NixOS/home-manager module import it themselves.
 
 ## Top level
 
-- **`../flake.nix`** — Inputs: nixpkgs-unstable, home-manager, nix-flatpak, caelestia-shell/cli, the caelestia dots repo (a plain source, not a flake; pieces of it are used directly, some patched), Zen, Helium, NixVirt, sops-nix, disko, bedrock-on-linux and Millennium. Imports `variables.nix` and passes it to every module as `specialArgs`.
-- **`../variables.nix`** — Everything machine/user-specific: username/description/hostname, timezone/locale/console keymap, Hyprland keyboard layout, monitor layout, cursor theme. Adapting the repo to another machine is (mostly) a one-file edit.
-- **`default.nix`** — The list of system modules in use, with dependencies between them noted.
+- **`../flake.nix`** — Inputs: nixpkgs-unstable, home-manager, nix-flatpak, caelestia-shell/cli, the caelestia dots repo (a plain source, not a flake; pieces of it are used directly, some patched), Zen, Helium, NixVirt, sops-nix, disko, bedrock-on-linux and Millennium. Builds one configuration per machine in `hosts/`: merges `variables.nix` with the machine's own, passes the result to every module as `specialArgs`, and leaves out the machine's `disabledModules`.
+- **`../variables.nix`** — What every machine shares: username/description, timezone/locale, cursor theme.
+- **`../hosts/<name>/variables.nix`** — Each machine's own: laptop or not, CPU, GPUs (+ NVIDIA PRIME bus IDs), install disk, keyboard, monitors, modules left out. See [machines.md](machines.md).
+- **`../hosts/<name>/hardware-configuration.nix`** — Each machine's `nixos-generate-config` output: initrd kernel modules and CPU microcode. **Not portable.** No disk layout — that's `system/disko.nix`. The laptops' are placeholders until `fresh-install.sh` installs them.
+- **`default.nix`** — The list of system modules, with dependencies between them noted. Every machine gets all of them, minus its `disabledModules`.
 
 ## `system/`
 
-- **`hardware-configuration.nix`** — `nixos-generate-config` output: initrd kernel modules and CPU microcode. **Not portable.** No disk layout — that's `disko.nix`.
-- **`disko.nix`** — Declarative disk layout: plaintext EFI partition, then one LUKS2 partition with a btrfs volume (root/home/nix/log/persist subvolumes + a swapfile subvolume). Applied once during install ([installing.md](installing.md)); on normal rebuilds it supplies `fileSystems`/`swapDevices`/LUKS config. **Not portable** — targets this machine's disk by id.
+- **`disko.nix`** — Declarative disk layout: plaintext EFI partition, then one LUKS2 partition with a btrfs volume (root/home/nix/log/persist subvolumes + a swapfile subvolume). Applied once during install ([installing.md](installing.md)); on normal rebuilds it supplies `fileSystems`/`swapDevices`/LUKS config. The disk is the machine's `disk` (by id); only formatting uses it.
 - **`boot.nix`** — systemd-boot, a systemd-based initrd (needed for Plymouth to draw the LUKS prompt), and a Plymouth splash/unlock screen in caelestia's "hard" dark colours.
-- **`hardware.nix`** — AMD graphics (+32-bit, and amdgpu in the initrd so the splash runs at native resolution), Bluetooth + blueman, fwupd.
-- **`base.nix`** — Hostname, NetworkManager, timezone/locale/console keymap, the user account (fish as shell), basic CLI tools, `system.stateVersion`.
+- **`gpu.nix`** — From the machine's `gpus`: graphics (+32-bit), amdgpu/i915 in the initrd so the splash runs at native resolution, Intel's VA-API driver, and the NVIDIA driver — open kernel modules, and on a hybrid laptop PRIME render offload (`nvidia-offload`) with the NVIDIA GPU powered off when unused.
+- **`hardware.nix`** — Bluetooth + blueman, fwupd.
+- **`base.nix`** — Hostname, NetworkManager, timezone/locale/console keymap (also loaded in the initrd for non-US keymaps, for the LUKS passphrase), the user account (fish as shell), basic CLI tools, `system.stateVersion`.
 - **`nix.nix`** — Flakes, unfree packages, daily garbage collection (keeps a week), nix-ld for prebuilt binaries.
 - **`memory.nix`** — Lower `vm.swappiness`, zram as compressed in-RAM swap ahead of the disk swapfile, and earlyoom to kill runaway processes before the desktop freezes.
-- **`power.nix`** — Sleep, suspend and hibernate disabled outright; lid switch ignored.
+- **`power.nix`** — From the machine's `isLaptop`. Desktop: sleep, suspend and hibernate disabled outright; lid switch ignored. Laptop: suspend on lid close (unless docked), no hibernation, UPower, power-profiles-daemon, and thermald on Intel.
 - **`secrets.nix`** — sops-nix: decrypts `secrets/secrets.yaml` into root-only files under `/run/secrets/` at activation. Currently holds the ProtonVPN WireGuard config. See [secrets.md](secrets.md).
 
 ## `desktop/`
@@ -57,8 +59,8 @@ What each file does. Paths are relative to `modules/`. System modules are listed
 ## `home/` (home-manager)
 
 - **`default.nix`** — Entry point: identity, XDG user dirs, cursor theme, Bitwarden, Bottles, the `' + c → ç` compose override, and `update-flake.sh`.
-- **`caelestia.nix`** — caelestia-shell + CLI: a patched shell package (working "Keep awake" toggle), CLI theme settings, shell.json seeded once (so its settings GUI can save), a writable Papirus copy for folder recolouring, rendering user templates on every activation, and the `caelestia.postHooks` option other modules use to run commands on scheme changes.
-- **`hyprland.nix`** — The dots' Hyprland config (with `rules.lua` patched to keep Vesktop out of the communication scratchpad), `hypr-user.lua` overrides (keyboard, monitors, cursor, env vars, kitty, screenshot binds), and the screenshot scripts.
+- **`caelestia.nix`** — caelestia-shell + CLI: a patched shell package (working "Keep awake" toggle), CLI theme settings, shell.json seeded once (so its settings GUI can save; brightness and the battery icon on for laptops), a writable Papirus copy for folder recolouring, rendering user templates on every activation, and the `caelestia.postHooks` option other modules use to run commands on scheme changes.
+- **`hyprland.nix`** — The dots' Hyprland config (with `rules.lua` patched to keep Vesktop out of the communication scratchpad), `hypr-user.lua` overrides (keyboard and monitors from the machine's variables, cursor, env vars, kitty, screenshot binds), the dots' sleep bind switched to plain suspend on laptops, and the screenshot scripts.
 - **`terminal.nix`** — kitty, fish with the dots' config, starship, fastfetch with a custom logo, btop.
 - **`apps/zen.nix`** — Zen browser, default browser, live-themed through the CaelestiaZen Sine mod, plus the dots' `userChrome.css`.
 - **`apps/helium.nix`** — Helium browser, themed with a Chrome theme generated from the scheme.

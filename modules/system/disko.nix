@@ -10,11 +10,12 @@
 # with root/home/nix/log/persist subvolumes and a swapfile subvolume, so
 # everything except /boot sits behind one passphrase at boot.
 #
-# The disk is addressed by its stable /dev/disk/by-id path, not
-# /dev/nvme0n1, so a change in device enumeration can't point this at the
-# wrong drive. The id is this machine's Kingston NVMe — check
-# `ls /dev/disk/by-id/` on the install target first (fresh-install.sh does).
-{ inputs, ... }:
+# The disk is the machine's `disk` (hosts/<name>/variables.nix): a stable
+# /dev/disk/by-id path, not /dev/nvme0n1, so a change in device enumeration
+# can't point this at the wrong drive. fresh-install.sh sets it to the disk
+# picked during the install. Only formatting uses it: the filesystems are
+# found by partition label afterwards, so it can't break a running system.
+{ inputs, disk, ... }:
 
 {
   imports = [ inputs.disko.nixosModules.disko ];
@@ -23,7 +24,7 @@
     disk = {
       main = {
         type = "disk";
-        device = "/dev/disk/by-id/nvme-KINGSTON_SNV3S1000G_50026B7686E83FA7";
+        device = disk;
         content = {
           type = "gpt";
           partitions = {

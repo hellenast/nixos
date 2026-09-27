@@ -1,4 +1,4 @@
-{ pkgs, inputs, keyboardLayout, keyboardVariant, primaryMonitor, secondaryMonitor, cursorTheme, cursorSize, ... }:
+{ lib, pkgs, inputs, isLaptop, keyboardLayout, keyboardVariant, keyboardModel, monitors, cursorTheme, cursorSize, ... }:
 
 # Hyprland's user config: the caelestia dots' config as the base, my
 # overrides on top (hypr-user.lua), and the screenshot scripts bound there.
@@ -32,6 +32,27 @@ let
       )
     } $out/hyprland/rules.lua
   '';
+
+  # The keyboard (hosts/<name>/variables.nix): layout and variant, plus the
+  # model when there is one. Joined with the indentation of the input block
+  # they go into, below.
+  keyboardSettings = lib.concatStringsSep "\n    " (
+    [ ''kb_layout = "${keyboardLayout}",'' ''kb_variant = "${keyboardVariant}",'' ]
+    ++ lib.optional (keyboardModel != "") ''kb_model = "${keyboardModel}",''
+  );
+
+  # One hl.monitor() per entry in the machine's monitors. scale is a number
+  # or "auto" (default 1); transform is optional.
+  monitorRules = lib.removeSuffix "\n" (lib.concatMapStrings (monitor: let
+    scale = monitor.scale or 1;
+  in ''
+    hl.monitor({
+      output = "${monitor.output}",
+      mode = "${monitor.mode}",
+      position = "${monitor.position}",
+      scale = ${if builtins.isString scale then ''"${scale}"'' else toString scale},
+    ${lib.optionalString (monitor ? transform) "  transform = ${toString monitor.transform},\n"}})
+  '') monitors);
 in
 {
   xdg.configFile."hypr" = {
@@ -55,8 +76,7 @@ in
   xdg.configFile."caelestia/hypr-user.lua".text = ''
     hl.config({
       input = {
-        kb_layout = "${keyboardLayout}",
-        kb_variant = "${keyboardVariant}",
+        ${keyboardSettings}
       },
     })
 
@@ -77,23 +97,13 @@ in
     -- The sudo side (env_keep) is in desktop/caelestia.nix.
     hl.env("USER_HOME", os.getenv("HOME"))
 
-    -- Monitor layout, from variables.nix: primary on the left at its full
-    -- refresh rate, secondary to its right. Without this, Hyprland picks
-    -- its own defaults whenever outputs re-enumerate (e.g. after the
-    -- screen turns off), reverting the refresh rate or swapping sides.
-    hl.monitor({
-      output = "${primaryMonitor.output}",
-      mode = "${primaryMonitor.mode}",
-      position = "${primaryMonitor.position}",
-      scale = 1,
-    })
-    hl.monitor({
-      output = "${secondaryMonitor.output}",
-      mode = "${secondaryMonitor.mode}",
-      position = "${secondaryMonitor.position}",
-      scale = 1,
-      transform = ${toString secondaryMonitor.transform},
-    })
+    -- Monitor layout, from the machine's monitors (hosts/<name>/variables.nix).
+    -- Without this, Hyprland picks its own defaults whenever outputs
+    -- re-enumerate (e.g. after the screen turns off), reverting the refresh
+    -- rate or swapping sides. Outputs not listed, like a laptop's external
+    -- monitor, get the dots' catch-all rule: preferred mode, placed
+    -- automatically.
+    ${monitorRules}
 
     -- No lock screen on session start: greetd logs in automatically, and
     -- the LUKS passphrase at boot already gates access.
@@ -135,6 +145,19 @@ in
     -- window should float, and a class rule can't tell it apart, so
     -- screenshot-region.sh floats just the window it opens.
   '';
+
+  # Laptops: the dots' sleep bind (Super+Shift+L) and four-finger swipe down
+  # run `systemctl suspend-then-hibernate`, which fails without hibernation
+  # (system/power.nix) — plain suspend instead. hypr-vars.lua is the dots'
+  # own file for overriding their variables, read before the binds are made.
+  # (On the desktop, which never sleeps, the dots' default stays.)
+  xdg.configFile."caelestia/hypr-vars.lua" = lib.mkIf isLaptop {
+    text = ''
+      return {
+        sleepGestureCmd = "systemctl suspend",
+      }
+    '';
+  };
 
   # --- Screenshot scripts (bound above) ---
 

@@ -94,33 +94,81 @@
 
   outputs = { nixpkgs, home-manager, ... } @ inputs: let
     system = "x86_64-linux";
+    lib = nixpkgs.lib;
 
-    # Everything specific to this machine and user (username, hostname,
-    # locale, monitors, cursor, ...) — see variables.nix. Passed to every
-    # module as plain arguments via specialArgs, so adapting the repo to
-    # another machine is a one-file edit.
-    vars = import ./variables.nix;
-    inherit (vars) username hostname;
-  in {
-    nixosConfigurations.${hostname} = nixpkgs.lib.nixosSystem {
+    # One configuration per folder in hosts/, named after it. The folder
+    # name is also the machine's hostname, so `nixos-rebuild switch --flake
+    # .#` (no name after `#`) picks the right one by itself.
+    hostnames = builtins.attrNames (lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./hosts));
+
+    mkHost = hostname: let
+      # variables.nix (shared: user, locale, cursor) overlaid with the
+      # machine's own hosts/<name>/variables.nix (hardware, keyboard,
+      # monitors, modules left out). Passed to every module as plain
+      # arguments via specialArgs — see docs/machines.md.
+      vars = import ./variables.nix // import ./hosts/${hostname}/variables.nix // { inherit hostname; };
+      args = { inherit inputs; } // removeAttrs vars [ "disabledModules" ];
+
+      # The machine's disabledModules as paths: the files under modules/
+      # it leaves out, the home/ ones from home-manager's module list.
+      disabled = home: map (module: ./modules + "/${module}")
+        (builtins.filter (module: lib.hasPrefix "home/" module == home) vars.disabledModules);
+    in lib.nixosSystem {
       inherit system;
-      specialArgs = { inherit inputs; } // vars;
+      specialArgs = args;
       modules = [
-        # All system modules (see modules/default.nix). Modules that need
-        # another flake's NixOS module (sops-nix, disko, NixVirt,
-        # nix-flatpak) import it themselves.
+        # All system modules (see modules/default.nix), minus the ones this
+        # machine leaves out. Modules that need another flake's NixOS
+        # module (sops-nix, disko, NixVirt, nix-flatpak) import it
+        # themselves.
         ./modules
+        { disabledModules = disabled false; }
+        ./hosts/${hostname}/hardware-configuration.nix
 
-        # The user's home-manager config (modules/home).
+        # The user's home-manager config (modules/home), minus the ones this
+        # machine leaves out. Two separate definitions, so modules/home stays
+        # a top-level module of the user's config rather than an import of
+        # one: that keeps the order its packages are merged in.
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-backup";
-          home-manager.extraSpecialArgs = { inherit inputs; } // vars;
-          home-manager.users.${username} = import ./modules/home;
+          home-manager.extraSpecialArgs = args;
+          home-manager.users.${vars.username} = import ./modules/home;
         }
+        { home-manager.users.${vars.username}.disabledModules = disabled true; }
       ];
+    };
+  in {
+    nixosConfigurations = lib.genAttrs hostnames mkHost;
+
+    # The install stick's ISO: NixOS's minimal installer plus a
+    # `fresh-install` command (installer/iso.nix). prepare-usb.sh builds it
+    # with `nix build .#installer-iso` and writes it to the stick.
+    packages.${system} = {
+      installer-iso = (lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit inputs; };
+        modules = [ ./installer/iso.nix ];
+      }).config.system.build.isoImage;
+
+      # disko's CLI, for fresh-install.sh. Built from here, it uses this
+      # flake's nixpkgs (the `follows` in the inputs): the one the machines
+      # and the installer ISO are built from, so on that ISO everything it
+      # needs is already there. `nix run --inputs-from . disko` would build
+      # it from disko's own nixpkgs instead — hundreds of MiB more to
+      # download, and a compiler, which a live ISO's RAM can't hold.
+      #
+      # Its package.nix reads `stdenv.isDarwin`, deprecated in nixpkgs (an
+      # evaluation warning every time; upstream still has it). The override
+      # hands it the current attribute's answer under the old name — it's
+      # only used for that, so the package itself doesn't change.
+      disko = inputs.disko.packages.${system}.disko.override {
+        stdenv = nixpkgs.legacyPackages.${system}.stdenv // {
+          isDarwin = nixpkgs.legacyPackages.${system}.stdenv.hostPlatform.isDarwin;
+        };
+      };
     };
   };
 }

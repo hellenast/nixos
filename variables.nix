@@ -29,7 +29,7 @@
   # with `hyprctl monitors` (once already running) or `wlr-randr`. If you
   # only have one monitor, point secondaryMonitor.output at the same name
   # as primaryMonitor.output and drop the second `hl.monitor` block in
-  # home.nix's hypr-user.lua (search for "secondaryMonitor").
+  # modules/home/hyprland.nix (search for "secondaryMonitor").
   primaryMonitor = {
     output = "DP-2";
     mode = "2560x1440@165";
@@ -45,9 +45,9 @@
   };
 
   # --- Appearance ---
-  # Cursor theme, applied both via home-manager (GTK/X11) and natively in
-  # Hyprland (see home.nix). Must be a theme name pkgs.bibata-cursors
-  # actually provides, or swap the package too if you want a different theme.
+  # Cursor theme, applied both via home-manager (GTK/X11, modules/home/default.nix)
+  # and natively in Hyprland (modules/home/hyprland.nix). Must be a theme
+  # pkgs.bibata-cursors provides — or swap the package too for another theme.
   cursorTheme = "Bibata-Modern-Ice";
   cursorSize = 24;
 }

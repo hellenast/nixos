@@ -9,14 +9,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Declarative Flatpak management, which I use twice: system-wide in
-    # configuration.nix for most apps, and user-scope in home.nix
-    # specifically for Spotify (it needs to be writable so spicetify can
-    # patch it, which a root-owned system install isn't).
+    # Declarative Flatpak management, used twice: system-wide
+    # (modules/desktop/flatpak.nix) for most apps, and user-scope for
+    # Spotify (modules/home/apps/spotify.nix), which has to be writable for
+    # spicetify to patch it.
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
-    # The actual desktop shell (bar, launcher, lock screen, dynamic
-    # theming...) and the CLI that drives it.
+    # The desktop shell (bar, launcher, lock screen, dynamic theming...) and
+    # the CLI that drives it. caelestia-cli isn't referenced directly:
+    # caelestia-shell follows it, so the CLI version is pinned here.
     caelestia-shell = {
       url = "github:caelestia-dots/shell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -27,9 +28,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Not a flake itself, just the dotfiles repo (Hyprland config, fish,
-    # spicetify theme, Thunar/VSCodium integration, ...) that I vendor
-    # pieces of directly in home.nix.
+    # Not a flake, just the caelestia dotfiles repo (Hyprland config, fish,
+    # spicetify theme, Thunar/VSCodium/Zen config, ...). The modules use
+    # pieces of it directly, some patched.
     caelestia-dots-src = {
       url = "github:caelestia-dots/caelestia";
       flake = false;
@@ -45,66 +46,59 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Manages the Windows VM (see windows-vm.nix) declaratively through
-    # libvirt, instead of me clicking through virt-manager by hand.
+    # Declares the Windows VM (modules/virtualisation/windows-vm.nix) in
+    # libvirt, instead of setting it up in virt-manager by hand.
     nixvirt = {
       url = "github:AshleyYakeley/NixVirt";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Decrypts secrets (see secrets.nix) at activation time so things like
-    # the ProtonVPN WireGuard config can live in this repo encrypted,
-    # instead of as a plain root-only file I have to remember to place by
-    # hand outside of Nix entirely.
+    # Decrypts secrets/secrets.yaml at activation
+    # (modules/system/secrets.nix), so secrets like the ProtonVPN WireGuard
+    # config can live in this repo, encrypted.
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Declarative disk partitioning (see disko.nix) — turns a from-scratch
-    # install into "run one command from the live ISO" instead of manually
-    # typing cryptsetup/mkfs/mount by hand. I only exercise this during a
-    # reinstall (nixos-install), not on every-day nixos-rebuild switch.
+    # Declarative disk partitioning (modules/system/disko.nix): a
+    # from-scratch install is one command from the live ISO instead of
+    # cryptsetup/mkfs/mount by hand. Only partitions during a reinstall; on
+    # normal rebuilds it just supplies the filesystem config.
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Runs the real Windows (GDK) build of Minecraft Bedrock Edition under
-    # steam-run/Proton, with native Xbox sign-in — what I landed on for
-    # Bedrock after both mcpelauncher-ui-qt (broken symbol resolver,
-    # segfaults on every version) and Waydroid (Mojang's own anti-tamper
-    # library refuses to run in its non-certified Android build, confirmed
-    # by a from-scratch reinstall) turned out to be genuine, unresolved
-    # upstream dead ends. See gaming.nix.
+    # steam-run/Proton, with native Xbox sign-in
+    # (modules/gaming/minecraft.nix). docs/gaming.md explains why this and
+    # not mcpelauncher or Waydroid.
     bedrock-on-linux = {
       url = "github:Wyze3306/BedrockOnLinux";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Millennium, the Steam client modding framework the caelestia Steam
-    # theme runs under (see gaming.nix). Pinned in the URL itself rather than
-    # just in flake.lock, because my deploy command only copies *.nix into
-    # /etc/nixos — /etc/nixos/flake.lock would otherwise lock whatever main
-    # is at deploy time. The rev is the commit that packages release v3.5.0
-    # (upstream bumps packages/nix in a follow-up commit after each release,
-    # so the release tag itself still carries the previous version's
-    # packaging). No nixpkgs `follows` on purpose: its build fetches Bun
-    # dependencies as a fixed-output derivation whose hash only matches the
-    # Bun from its own pinned nixpkgs.
+    # theme runs under (modules/gaming/steam.nix). Pinned in the URL, not
+    # just in flake.lock, because the deploy command doesn't copy flake.lock
+    # into /etc/nixos (docs/deploying.md), so it would otherwise lock
+    # whatever main is at deploy time. The rev is the commit that packages
+    # release v3.5.0: upstream updates packages/nix in a follow-up commit
+    # after each release, so the release tag still has the previous
+    # version's packaging. No nixpkgs `follows` on purpose: its build
+    # fetches Bun dependencies as a fixed-output derivation whose hash only
+    # matches the Bun in its own pinned nixpkgs.
     millennium.url = "github:SteamClientHomebrew/Millennium/1e65b76114450a505905432bfeae0cf87b6d286e?dir=packages/nix";
   };
 
-  outputs = { self, nixpkgs, home-manager, caelestia-shell, caelestia-cli, caelestia-dots-src, zen-browser, ... } @ inputs: let
+  outputs = { nixpkgs, home-manager, ... } @ inputs: let
     system = "x86_64-linux";
-    pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
-    # Single source of truth for everything specific to my machine
-    # (username, hostname, timezone, monitor layout, cursor theme, ...) —
-    # see variables.nix. I spread it into specialArgs below so every module
-    # gets these as plain arguments, and adapting this repo to a different
-    # machine is a one-file edit instead of hunting literals across every
-    # module.
+    # Everything specific to this machine and user (username, hostname,
+    # locale, monitors, cursor, ...) — see variables.nix. Passed to every
+    # module as plain arguments via specialArgs, so adapting the repo to
+    # another machine is a one-file edit.
     vars = import ./variables.nix;
     inherit (vars) username hostname;
   in {
@@ -112,36 +106,19 @@
       inherit system;
       specialArgs = { inherit inputs; } // vars;
       modules = [
-        ./configuration.nix
-        ./disko.nix
-        ./windows-vm.nix
-        ./audio-routing.nix
-        ./vr.nix
-        ./gaming.nix
-        ./waydroid.nix
-        ./caelestia-system.nix
-        ./amazfit.nix
-        ./media.nix
-        ./dev.nix
-        ./ai.nix
-        ./protonvpn.nix
-        ./tor.nix
-        ./secrets.nix
-        ./firmware.nix
-        ./oom.nix
+        # All system modules (see modules/default.nix). Modules that need
+        # another flake's NixOS module (sops-nix, disko, NixVirt,
+        # nix-flatpak) import it themselves.
+        ./modules
 
-        inputs.nix-flatpak.nixosModules.nix-flatpak
-        inputs.nixvirt.nixosModules.default
-        inputs.sops-nix.nixosModules.sops
-        inputs.disko.nixosModules.disko
-
+        # The user's home-manager config (modules/home).
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-backup";
           home-manager.extraSpecialArgs = { inherit inputs; } // vars;
-          home-manager.users.${username} = import ./home.nix;
+          home-manager.users.${username} = import ./modules/home;
         }
       ];
     };

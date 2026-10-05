@@ -41,6 +41,9 @@
     ./gaming/steam.nix
     ./gaming/minecraft.nix
     ./gaming/roblox.nix
+    # Its anti-AFK toggle is for Roblox (gaming/roblox.nix), but CrossMacro
+    # itself works without it.
+    ./gaming/crossmacro.nix
     # ALVR streams SteamVR, so this is only useful with gaming/steam.nix.
     ./gaming/vr.nix
 

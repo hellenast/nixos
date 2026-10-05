@@ -43,6 +43,7 @@ What each file does. Paths are relative to `modules/`. System modules are listed
 - **`steam.nix`** — Steam with Millennium injected (client modding), Remote Play/dedicated-server firewall rules, a gamescope session, gamescope, GameMode — and the caelestia-themed Material skin for the Steam client (the home-manager half).
 - **`minecraft.nix`** — Prism Launcher (Java Edition) and bedrock-on-linux (Bedrock Edition: the Windows GDK build under Proton).
 - **`roblox.nix`** — Sober (Roblox) from Flathub.
+- **`crossmacro.nix`** — CrossMacro, a GUI macro recorder/player and autoclicker that works on Wayland (its input daemon, uinput, polkit rules, `crossmacro` group), plus a Roblox anti-AFK toggle on Super+Alt+A that presses Space every 2 minutes while Roblox is focused.
 - **`vr.nix`** — ALVR server + firewall ports, streaming SteamVR to a standalone headset.
 
 ## `virtualisation/`

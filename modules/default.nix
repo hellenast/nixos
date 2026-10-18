@@ -28,6 +28,7 @@
     ./desktop/audio.nix
     ./desktop/caelestia.nix
     ./desktop/thunar.nix
+    ./desktop/disks.nix
     # Needed by apps/amazfit.nix, gaming/roblox.nix and home/apps/spotify.nix
     # (Flatpak installs; nix-flatpak's user-scope one still needs this).
     ./desktop/flatpak.nix

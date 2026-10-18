@@ -44,20 +44,10 @@
     config.common.default = "*";
   };
 
-  # Polkit, plus a GUI agent to answer its password prompts (e.g. from
-  # NetworkManager or virt-manager). Hyprland doesn't ship an agent.
+  # Polkit. Its GUI agent, which answers the password prompts (e.g. from
+  # NetworkManager, virt-manager or GNOME Disks), is polkit-gnome, started
+  # by the dots' execs.lua as a Hyprland child (path patched in
+  # home/hyprland.nix). Not a systemd user unit: those hang off
+  # graphical-session.target, which never activates here.
   security.polkit.enable = true;
-  systemd.user.services.polkit-gnome-authentication-agent-1 = {
-    description = "polkit-gnome-authentication-agent-1";
-    wantedBy = [ "graphical-session.target" ];
-    wants = [ "graphical-session.target" ];
-    after = [ "graphical-session.target" ];
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
-      Restart = "on-failure";
-      RestartSec = 1;
-      TimeoutStopSec = 10;
-    };
-  };
 }

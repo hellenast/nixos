@@ -7,11 +7,12 @@
 let
   dots = inputs.caelestia-dots-src;
 
-  # The dots' Hyprland config, with one patch to rules.lua: Vesktop is
-  # dropped from the "communication_app" tag, whose rule sends those windows
-  # to a special, screen-covering workspace. Vesktop should tile like a
-  # normal window. (Discord/Equibop keep the tag, and WhatsApp has its own
-  # untouched entry.)
+  # The dots' Hyprland config, with two patches.
+  #
+  # rules.lua: Vesktop is dropped from the "communication_app" tag, whose
+  # rule sends those windows to a special, screen-covering workspace.
+  # Vesktop should tile like a normal window. (Discord/Equibop keep the tag,
+  # and WhatsApp has its own untouched entry.)
   #
   # It has to be patched at the source because the workspace is decided
   # when the window is created: removing the tag from hypr-user.lua, which
@@ -21,6 +22,15 @@ let
   #
   # A targeted string replace rather than a vendored copy of rules.lua, so
   # upstream changes to the rest of the file still come through.
+  #
+  # execs.lua: the polkit agent, which shows the password prompt for
+  # anything that needs admin rights (GNOME Disks, NetworkManager,
+  # virt-manager, ...), is started from Arch's /usr/lib path, which doesn't
+  # exist here. Without it no prompt ever appeared and those actions just
+  # failed as "not authorized". Pointed at the Nix store instead; it then
+  # runs as a Hyprland child like the shell, with the session's Wayland
+  # environment. --replace-fail so an upstream change to that line breaks
+  # the build instead of silently dropping the agent again.
   hyprDotsPatched = pkgs.runCommand "hypr-dots-patched" { } ''
     cp -r --no-preserve=mode ${dots}/hypr $out
     cp ${
@@ -31,6 +41,9 @@ let
           (builtins.readFile "${dots}/hypr/hyprland/rules.lua")
       )
     } $out/hyprland/rules.lua
+    substituteInPlace $out/hyprland/execs.lua \
+      --replace-fail /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 \
+        ${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1
   '';
 
   # The keyboard (hosts/<name>/variables.nix): layout and variant, plus the

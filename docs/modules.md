@@ -26,10 +26,11 @@ What each file does. Paths are relative to `modules/`. System modules are listed
 
 ## `desktop/`
 
-- **`session.nix`** — Hyprland, greetd logging straight into it (no greeter — LUKS already gates boot), xdg-desktop-portals, polkit with a GUI agent.
+- **`session.nix`** — Hyprland, greetd logging straight into it (no greeter — LUKS already gates boot), xdg-desktop-portals, polkit (its GUI agent starts from `home/hyprland.nix`).
 - **`audio.nix`** — PipeWire with ALSA (+32-bit) and PulseAudio compatibility.
 - **`caelestia.nix`** — System-side support for caelestia-shell: its fonts, dconf (for GTK theme writes), and a passwordless sudo rule for the `papirus-folders` call caelestia makes on every scheme change.
 - **`thunar.nix`** — Thunar with the archive plugin, gvfs (trash, network locations), engrampa + zip/unzip/p7zip, and the dots' Thunar config with kitty as "Open Terminal Here".
+- **`disks.nix`** — GNOME Disks (format, partition, encrypt, SMART, benchmark, disk images) and the udisks2 daemon behind it; themed by caelestia's GTK theming.
 - **`flatpak.nix`** — System-wide Flatpak (nix-flatpak) with Flathub, daily auto-updates plus an update on every boot. Apps are declared by the modules that use them.
 
 ## `apps/`
@@ -61,7 +62,7 @@ What each file does. Paths are relative to `modules/`. System modules are listed
 
 - **`default.nix`** — Entry point: identity, XDG user dirs, cursor theme, Bitwarden, Bottles, the `' + c → ç` compose override, and `update-flake.sh`.
 - **`caelestia.nix`** — caelestia-shell + CLI: a patched shell package (working "Keep awake" toggle), CLI theme settings, shell.json seeded once (so its settings GUI can save; brightness and the battery icon on for laptops), a writable Papirus copy for folder recolouring, rendering user templates on every activation, and the `caelestia.postHooks` option other modules use to run commands on scheme changes.
-- **`hyprland.nix`** — The dots' Hyprland config (with `rules.lua` patched to keep Vesktop out of the communication scratchpad), `hypr-user.lua` overrides (keyboard and monitors from the machine's variables, cursor, env vars, kitty, screenshot binds), the dots' sleep bind switched to plain suspend on laptops, and the screenshot scripts.
+- **`hyprland.nix`** — The dots' Hyprland config (with `rules.lua` patched to keep Vesktop out of the communication scratchpad, and `execs.lua` to start the polkit agent from the Nix store), `hypr-user.lua` overrides (keyboard and monitors from the machine's variables, cursor, env vars, kitty, screenshot binds), the dots' sleep bind switched to plain suspend on laptops, and the screenshot scripts.
 - **`terminal.nix`** — kitty, fish with the dots' config, starship, fastfetch with a custom logo, btop.
 - **`apps/zen.nix`** — Zen browser, default browser, live-themed through the CaelestiaZen Sine mod, plus the dots' `userChrome.css`.
 - **`apps/helium.nix`** — Helium browser, themed with a Chrome theme generated from the scheme.

@@ -15,8 +15,10 @@
     ./apps/vscodium.nix
     ./apps/vesktop.nix
     ./apps/spotify.nix
+    ./apps/spotube.nix
     ./apps/zapzap.nix
     ./apps/media.nix
+    ./apps/calculator.nix
   ];
 
   home.username = username;

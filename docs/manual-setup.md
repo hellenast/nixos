@@ -5,7 +5,7 @@ Things a plain `nixos-rebuild switch` can't do — either because they're intera
 Topic pages:
 - [Secrets](secrets.md) — the age key, needed before the first rebuild that decrypts anything
 - [ProtonVPN](protonvpn.md) — getting and encrypting the WireGuard config
-- [Caelestia theming](theming.md) — one-time steps for Spotify, Vesktop, VSCodium, Zen, Helium, ZapZap, Steam
+- [Caelestia theming](theming.md) — one-time steps for Spotify, Spotube, Vesktop, VSCodium, Zen, Helium, ZapZap, Steam
 - [Gaming](gaming.md) — GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, VR headset
 - [VMs and containers](virtualisation.md) — Windows VM / Dubbing AI, Waydroid
 

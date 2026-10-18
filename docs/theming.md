@@ -18,6 +18,13 @@ How the integrations plug in (`modules/home/caelestia.nix`):
 - No live sync: `spicetify watch` crashes outside the Flatpak sandbox. Spotify is re-patched on every scheme change instead; restart it to see the new colours.
 - A Spotify update undoes the patch until the next scheme change (or `spicetify apply` by hand).
 
+## Spotube (`home/apps/spotube.nix`)
+
+- Partial theming only: Spotube 5 has no custom colours, just twelve built-in colour schemes (Settings > Appearance). The accent is set to whichever is nearest the scheme's primary (a grey one for monochrome schemes), and light/dark follows the scheme. Backgrounds are that preset's own near-black/white, not caelestia's surfaces.
+- Not live: both are written into Spotube's database right before each launch, so a scheme change shows the next time Spotube starts.
+- The very first start is unthemed: Spotube creates its database then, and only the start after that picks up the scheme.
+- Picking a colour scheme or theme mode in Spotube's settings only lasts until its next launch.
+
 ## Vesktop (`home/apps/vesktop.nix`)
 
 - caelestia writes `~/.config/vesktop/themes/caelestia.theme.css` on every scheme change, but Vencord never enables a theme just because it exists — turn it on once in Vesktop's Settings > Themes. Until then Vesktop runs unthemed with no hint why.

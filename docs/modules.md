@@ -68,7 +68,9 @@ What each file does. Paths are relative to `modules/`. System modules are listed
 - **`apps/vscodium.nix`** — VSCodium with the dots' settings and theme extension, and its theme synced before each launch and on scheme changes.
 - **`apps/vesktop.nix`** — Vesktop (Discord), caelestia theme, kept out of the scratchpad toggle and un-maximized on every activation.
 - **`apps/spotify.nix`** — Spotify as a user-scope Flatpak, spicetify with the caelestia theme, re-applied on scheme changes, and the music scratchpad toggle.
+- **`apps/spotube.nix`** — Spotube (open-source music client), with its accent preset and light/dark synced from the scheme before each launch.
 - **`apps/zapzap.nix`** — ZapZap (WhatsApp): WhatsApp Web CSS and a patched Qt palette, both from the scheme.
 - **`apps/media.nix`** — VLC (default for video/audio), Krita, Drawing, Webcamoid.
+- **`apps/calculator.nix`** — GNOME Calculator, themed by caelestia's GTK theming as a libadwaita app, with the TLS module its currency rates need.
 
 The manual steps each of these needs are in [manual-setup.md](manual-setup.md) and the pages it links.

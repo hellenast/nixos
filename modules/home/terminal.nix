@@ -52,6 +52,14 @@ in
     };
     settings = {
       background_opacity = "0.99";
+
+      # Hyprland tiles kitty, so a remembered size means nothing. Newer
+      # kitty (0.51; 0.48 didn't) also remembers through this option whether
+      # the last window was maximized (~/.cache/kitty/main.json) and asks
+      # for that again at startup: close
+      # one maximized window and every new kitty opens maximized, covering
+      # the workspace instead of taking its tile, and closes maximized again.
+      remember_window_size = "no";
     };
   };
 

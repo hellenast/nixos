@@ -114,6 +114,14 @@ let
         <channel type='spicevmc'>
           <target type='virtio' name='com.redhat.spice.0'/>
         </channel>
+        <!-- QEMU guest agent: lets the host query Windows and run commands
+             in it (virsh qemu-agent-command, guest-exec), for fixing things
+             from the host without opening the VM. Needs the agent
+             installed in Windows (virtio-win-guest-tools.exe, see
+             docs/virtualisation.md). libvirt picks the socket path. -->
+        <channel type='unix'>
+          <target type='virtio' name='org.qemu.guest_agent.0'/>
+        </channel>
 
         <!-- My physical mic, passed straight into the VM by USB ID, so
              Windows (and Dubbing AI, and Discord, all running inside it)
@@ -152,6 +160,13 @@ in
     # list of active USB devices") and the mic stays broken. A clean guest
     # shutdown means every boot is a cold start instead.
     onShutdown = "shutdown";
+    # NixVirt starts the VM at boot (`active = true`, below), after it has
+    # started dubbingai-net. With the default, "start", libvirt-guests also
+    # restarts whatever was running at shutdown, but it runs before NixVirt
+    # brings the network up, so it fails ("network 'dubbingai-net' is not
+    # active") and the unit shows as failed on every boot that follows a
+    # shutdown with the VM running.
+    onBoot = "ignore";
   };
   programs.virt-manager.enable = true;
 
@@ -207,6 +222,13 @@ in
       {
         definition = domainXml;
         active = true; # NixVirt starts it (at boot and on rebuild) if it isn't running
+        # By default NixVirt applies a changed definition right away by
+        # destroying the running VM (a hard power-off, no Windows shutdown)
+        # and starting it again. Off: a rebuild only updates the saved
+        # definition, and Windows picks it up on its next cold start — the
+        # next host reboot (a clean guest shutdown, onShutdown above, then
+        # NixVirt starts it) or a shutdown and start in virt-manager.
+        restart = false;
       }
     ];
   };

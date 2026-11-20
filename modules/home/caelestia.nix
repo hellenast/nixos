@@ -44,10 +44,12 @@ let
       { id = "power"; enabled = true; }
     ];
     osd.enableBrightness = isLaptop;
-    # Celsius and 24-hour time regardless of locale (both default to a
-    # locale-based guess).
-    services.useFahrenheit = false;
-    services.useTwelveHourClock = false;
+    # Celsius and 24-hour time regardless of locale (both default to Auto,
+    # a locale-based guess, which en_US turns into °F and a 12-hour clock).
+    # Enums since shell e72df8e (2026-11-15); they replaced the booleans
+    # useFahrenheit/useTwelveHourClock, which it now ignores.
+    services.weatherUnits = "Celsius";
+    services.clockFormat = "TwentyFourHour";
   };
   caelestiaShellSettingsFile = pkgs.writeText "caelestia-shell-seed.json" (builtins.toJSON caelestiaShellSettings);
 
@@ -94,22 +96,27 @@ in
       # the shell's idle timeouts (lock at 3min, screen off at 5min, ...).
       #
       # Upstream, the toggle puts a Wayland idle inhibitor on an invisible
-      # 0x0 window (services/IdleInhibitor.qml), and the IdleMonitors are
+      # 0x0 window (daemons/IdleInhibit.qml), and the IdleMonitors are
       # meant to respect it. But a 0x0 window never gets a buffer, so it's
       # never mapped, and Hyprland ignores inhibitors on unmapped surfaces
       # (recheckIdleInhibitorStatus() in src/managers/input/IdleInhibitor.cpp).
       # The toggle flips but nothing is inhibited; it only seemed to work
       # while media played, because general.idle.inhibitWhenAudio pauses
-      # the timeouts then. The patch makes IdleMonitors check the toggle
-      # directly. The import is qualified because IdleMonitors.qml also
-      # imports Quickshell.Wayland, which has its own IdleInhibitor type.
+      # the timeouts then. The patch makes IdleMonitors check the toggle's
+      # state (RuntimeState.inhibitIdle) directly. The import is qualified
+      # so nothing in Caelestia.State can shadow a type the file already
+      # uses from its other imports.
+      #
+      # Still needed as of shell e72df8e (2026-11-15), which moved both
+      # files from modules/ and services/ into daemons/: the inhibitor is
+      # still on a 0x0 window.
       package = inputs.caelestia-shell.packages.${pkgs.stdenv.hostPlatform.system}.with-cli.overrideAttrs (old: {
         postPatch = (old.postPatch or "") + ''
-          substituteInPlace modules/IdleMonitors.qml \
-            --replace-fail 'import qs.services' 'import qs.services
-          import qs.services as Services' \
+          substituteInPlace daemons/IdleMonitors.qml \
+            --replace-fail 'import Caelestia.Services' 'import Caelestia.Services
+          import Caelestia.State as State' \
             --replace-fail 'readonly property bool enabled: {' 'readonly property bool enabled: {
-                  if (Services.IdleInhibitor.enabled)
+                  if (State.RuntimeState.inhibitIdle)
                       return false;'
         '';
       });

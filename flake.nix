@@ -81,15 +81,21 @@
 
     # Millennium, the Steam client modding framework the caelestia Steam
     # theme runs under (modules/gaming/steam.nix). Pinned in the URL, not
-    # just in flake.lock, because the deploy command doesn't copy flake.lock
-    # into /etc/nixos (docs/deploying.md), so it would otherwise lock
-    # whatever main is at deploy time. The rev is the commit that packages
-    # release v3.5.0: upstream updates packages/nix in a follow-up commit
-    # after each release, so the release tag still has the previous
-    # version's packaging. No nixpkgs `follows` on purpose: its build
-    # fetches Bun dependencies as a fixed-output derivation whose hash only
-    # matches the Bun in its own pinned nixpkgs.
-    millennium.url = "github:SteamClientHomebrew/Millennium/1e65b76114450a505905432bfeae0cf87b6d286e?dir=packages/nix";
+    # just in flake.lock, so `nix flake update` leaves it alone: it runs
+    # code inside the Steam client, so a bump should mean reading the new
+    # version first (docs/deploying.md). The rev is the commit that
+    # packages release v3.6.3: upstream updates packages/nix in a follow-up
+    # commit after each release, so the release tag still has the previous
+    # version's packaging.
+    #
+    # nixpkgs follows ours, which upstream supports since 3.6.0: the Bun
+    # whose exact version the Bun dependencies' fixed-output hash depends on
+    # comes from a separate, pinned input (nixpkgs-bun) that must not
+    # follow anything.
+    millennium = {
+      url = "github:SteamClientHomebrew/Millennium/6522c24e8bd3de41a7601ceb4e78a619930f1704?dir=packages/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { nixpkgs, home-manager, ... } @ inputs: let

@@ -3,24 +3,10 @@
 # Steam (with the Millennium client-modding framework and a caelestia-themed
 # skin), gamescope and GameMode.
 let
-  # Millennium (flake input, see flake.nix), built with Millennium's own
-  # pinned nixpkgs the way its flake does, rather than taken from its
-  # `packages` output: the v3.5.0 packaging ships a stale hash for its Bun
-  # dependencies (the v3.5.0 sources resolve to exactly the v3.4.1 set), so
-  # it fails to build as shipped. The replaceStrings below fixes that hash
-  # on the pinned source; once the pin moves past the upstream fix
-  # (SteamClientHomebrew/Millennium#907) it no longer matches anything and
-  # can be removed.
-  millenniumPkgs = import inputs.millennium.inputs.nixpkgs {
-    inherit (pkgs.stdenv.hostPlatform) system;
-    config.allowUnfree = true;
-  };
-  millennium = millenniumPkgs.callPackage (builtins.toFile "millennium.nix" (
-    builtins.replaceStrings
-      [ "sha256-mAM2qhb0TOzPosejOcG2VegDkbEmY3JF8lkKgDpVjA0=" ]
-      [ "sha256-iPdEl5GH0cXjn1EUdYutqxdMwdRXms+eXCEIwZ3xeLY=" ]
-      (builtins.readFile "${inputs.millennium}/millennium.nix")
-  )) { inherit (inputs.millennium.inputs) millennium-src; };
+  # Millennium (flake input, see flake.nix), straight from its `packages`
+  # output: built against this system's nixpkgs (the input's nixpkgs
+  # follows ours), with Bun from its own pinned nixpkgs-bun.
+  millennium = inputs.millennium.packages.${pkgs.stdenv.hostPlatform.system}.millennium;
 in
 {
   programs.steam = {
@@ -84,10 +70,40 @@ in
       cp -r --no-preserve=mode ${pkgs.fetchFromGitHub {
         owner = "kuska1";
         repo = "Material-Theme";
-        rev = "f91b4e9cbc5436f149e6b293391a9a96ab47fbe9";
-        hash = "sha256-qPzo59NyKsmKkhupOf3n9X29p/Wbv7jaKDGaM23HTJo=";
+        rev = "114522b6db129a6f87eb4eb89195ef277656ac20";
+        hash = "sha256-Ss4D+xIvJUKX62QDqpzww4NCicG3ljwMFa5S97QAL8c=";
       }} $out
       ln -sf ${config.xdg.stateHome}/caelestia/theme/steam-material.css $out/css/main/colors/matugen.css
+      cat ${storeHeaderCss} >> $out/css/main/web/store.css
+    '';
+
+    # The store's header bar (Browse, Recommendations, ..., search) stayed
+    # Steam-blue: the theme only rounds its search form, and its colour
+    # rules for the search button are for older class names. These recolour
+    # the bar, the shadow strip under it, the search field and the search
+    # button with the theme's own variables. Steam's class names are hashes
+    # that change when it rebuilds its store (the theme collects several
+    # generations of them), so if the bar turns blue again, the names below
+    # need refreshing; data-featuretarget="store-menu-v7" is the stable
+    # element the header renders into.
+    storeHeaderCss = pkgs.writeText "steam-store-header.css" ''
+
+      /* caelestia: store header colours (modules/gaming/steam.nix) */
+      body .XLbP8xOkCYw- {
+          background: var(--md-sys-color-surface-container);
+      }
+      body [data-featuretarget="store-menu-v7"] .hjG2apu1gQc- {
+          background: unset;
+      }
+      body form.Tx-rbJxeMFs- {
+          background: var(--md-sys-color-surface-container-highest);
+      }
+      body form.Tx-rbJxeMFs- .A42lZ-U1dhI- {
+          border-style: none;
+          box-shadow: unset;
+          background: unset;
+          color: var(--md-sys-color-on-surface-variant);
+      }
     '';
 
     # Every --md-sys-color-* variable the theme reads, in caelestia's

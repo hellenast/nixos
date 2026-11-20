@@ -35,7 +35,11 @@
                 type = "filesystem";
                 format = "vfat";
                 mountpoint = "/boot";
-                mountOptions = [ "fmask=0022" "dmask=0022" ];
+                # FAT has no per-file permissions: these masks set them for
+                # the whole partition. Root-only, because systemd-boot keeps
+                # its random seed here (/boot/loader/random-seed) and
+                # complains on every boot when other users can read it.
+                mountOptions = [ "fmask=0077" "dmask=0077" ];
               };
             };
             luks = {

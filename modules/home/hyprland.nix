@@ -74,7 +74,7 @@ in
   };
 
   # No hypridle config: idle, lock and screen-off are handled by
-  # caelestia-shell itself (modules/IdleMonitors.qml, and its session
+  # caelestia-shell itself (daemons/IdleMonitors.qml, and its session
   # manager listening to logind), and nothing in the dots runs hypridle.
 
   # My overrides. caelestia's Hyprland config loads this file last, for

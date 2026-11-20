@@ -11,6 +11,7 @@ A Windows 10 VM for the Dubbing AI voice changer, which needs real Windows kerne
 - Put a Windows 10 ISO at `~/isos/Win10.iso` before the VM first boots.
 - After installing Windows, install the SPICE Guest Tools inside it. They make the QXL video device work (instead of a slow generic VGA driver) and provide clipboard sharing and cursor integration. Nix can't do this — it runs inside the guest.
 - If the physical mic ever changes, look up its USB vendor/product id with `lsusb` and update `micVendorId`/`micProductId` in `windows-vm.nix`.
+- Install the QEMU guest agent inside Windows too: download and run [`virtio-win-guest-tools.exe`](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/latest-virtio/virtio-win-guest-tools.exe) (the VirtIO drivers, including the serial driver the agent talks through, and the agent itself as the "QEMU Guest Agent" service). The VM already has the matching `org.qemu.guest_agent.0` channel. It lets the host check on Windows and run commands in it, e.g. `virsh -c qemu:///system qemu-agent-command dubbingai-win10 '{"execute":"guest-ping"}'`, or `guest-exec` to run PowerShell. Those commands run as SYSTEM, which is no more than anyone in the `libvirtd` group could already do through the VM's disk.
 
 ### Routing the voice (each time it's needed)
 
@@ -18,6 +19,10 @@ A Windows 10 VM for the Dubbing AI voice changer, which needs real Windows kerne
 2. On the host: in `pavucontrol`'s Playback tab, route the VM's SPICE playback stream into `DubbingAI_Virtual_Mic`.
 
 `audio-routing.nix` already makes the remapped `DubbingAI_Mic` source the system default input, so apps that use "the default mic" (Sober, ZapZap, ...) pick it up without per-app selection.
+
+### Changing the VM
+
+Edits to the VM definition in `windows-vm.nix` take effect on its next cold start, not on rebuild: NixVirt's default would apply them by force-stopping the running VM, so it's set not to (`restart = false`). A host reboot does it (Windows is shut down cleanly, then started with the new definition), or shutting the VM down and starting it again in virt-manager. Restarting from inside Windows isn't enough: that keeps the same QEMU process, and with it the old definition.
 
 ### State
 

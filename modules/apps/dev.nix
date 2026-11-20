@@ -52,4 +52,11 @@
     beekeeper-studio  # GUI DB client (Postgres/MySQL/SQLite/...)
     insomnia          # GUI API client (REST/GraphQL/gRPC)
   ];
+
+  # nixpkgs marks Cypress insecure: it bundles Electron 37, EOL since
+  # October 2025, with known CVEs. Accepted for a test runner pointed at my
+  # own apps. Pinned to the exact version on purpose: when nixpkgs bumps
+  # Cypress the exception stops matching, and if the new one is still
+  # flagged the build fails again, so the call gets made again.
+  nixpkgs.config.permittedInsecurePackages = [ "cypress-15.19.0" ];
 }

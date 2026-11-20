@@ -59,11 +59,11 @@ in
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # A systemd-based initrd is what lets Plymouth draw the LUKS passphrase
-  # prompt (disko.nix). The classic initrd asks for the passphrase as plain
-  # console text before Plymouth starts; systemd's systemd-ask-password
-  # talks to Plymouth directly instead.
-  boot.initrd.systemd.enable = true;
+  # The initrd is systemd-based, which is what lets Plymouth draw the LUKS
+  # passphrase prompt (disko.nix): systemd-ask-password talks to Plymouth
+  # directly. That's the only kind NixOS has now — the classic scripted
+  # initrd, which asked as plain console text before Plymouth started, was
+  # removed, and with it the boot.initrd.systemd.enable switch.
 
   # Themed splash + LUKS unlock screen. No NixOS logo watermark: Plymouth
   # only wires that up for the stock catppuccin theme names, not a custom

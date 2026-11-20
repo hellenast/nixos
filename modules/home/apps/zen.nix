@@ -8,22 +8,23 @@
 # and native host in the dots' firefox/ dir) pushes colours through
 # Firefox's theme API, which Zen mostly ignores, and upstream marks Zen
 # theming won't-fix (caelestia-dots/caelestia#148, #424). CaelestiaZen
-# instead has the CLI render the scheme into a CSS file (a user template),
-# and its chrome script injects that file into Zen's UI, reloading it
-# whenever it changes.
+# instead reads the CLI's scheme.json (~/.local/state/caelestia) from its
+# chrome script and injects the colours into Zen's UI, reloading them
+# whenever the file changes. Since 2.0 it also restyles Zen as an M3
+# Expressive app and follows caelestia's light/dark mode; both can be
+# switched off in the mod's Sine settings.
 let
   dots = inputs.caelestia-dots-src;
 
-  # Pinned by rev + hash rather than as a flake input: it runs with full
-  # browser privileges, and the deploy command doesn't copy flake.lock
-  # (docs/deploying.md), so a flake input would lock to whatever upstream
-  # HEAD is at deploy time rather than the commit that was reviewed. To
-  # bump: read the new theme-sync.uc.js, then edit rev/hash.
+  # Pinned by rev + hash rather than as a flake input, so `nix flake
+  # update` leaves it alone: it runs with full browser privileges, so a bump
+  # should mean reading the new theme-sync.uc.js first (docs/deploying.md),
+  # then editing rev/hash. This is 2.0.0.
   caelestiaZen = pkgs.fetchFromGitHub {
     owner = "dim-ghub";
     repo = "CaelestiaZen";
-    rev = "aeb0cc00ef5a64e572abb02f94e672a651e5c2f3";
-    hash = "sha256-q4BPInmlJ8vRxwJShYZ9OnBDDLNg7+Qz2Jrh/4i54E4=";
+    rev = "a46830994eef22c2b6d8cc355baea36c7a400afd";
+    hash = "sha256-DHLkITD83thWrQ0VQfd1FJ+DLxi3xO+1h/f95hNTYBU=";
   };
 
   # The profile directory Zen created on its first launch. Declaring the
@@ -73,17 +74,11 @@ in
         "sine.engine.auto-update" = false;
         "sine.auto-updates" = false;
 
-        # Where the CLI renders the mod's template (below). Has to be set:
-        # the mod only reads this pref once it has a user value (which Sine
-        # writes only when the mod's settings page is first opened), and
-        # otherwise falls back to a path in its author's home (/home/dim/...),
-        # silently finding nothing.
-        "caelestia.zen-sync.chrome-path" = "${config.xdg.stateHome}/caelestia/theme/zen-browser.css";
-
         # Theme only the browser UI, like caelestia's own Firefox
-        # integration. The mod's default also tints every website through
-        # Zen Boosts.
-        "caelestia.zen-sync.boost-enabled" = false;
+        # integration. The mod's default ("balanced") also tints every
+        # website through Zen Boosts. Set here, it wins over the mod's
+        # settings page on every start.
+        "caelestia.zen.tint" = "off";
       };
     };
   };
@@ -93,10 +88,6 @@ in
   # mods.json/chrome.css/content.css there at runtime, so that directory
   # must stay writable.
   xdg.configFile."zen/${zenProfilePath}/chrome/sine-mods/caelestia-zen".source = caelestiaZen;
-
-  # The mod's template, rendered by the CLI on every scheme change into
-  # ~/.local/state/caelestia/theme — the file the mod watches.
-  xdg.configFile."caelestia/templates/zen-browser.css".source = "${caelestiaZen}/templates/zen-browser.css";
 
   # Sine only loads mods listed in sine-mods/mods.json, which it also edits
   # itself (enable toggles, metadata), so it can't be a read-only symlink.

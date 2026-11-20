@@ -15,9 +15,9 @@ What each file does. Paths are relative to `modules/`. System modules are listed
 ## `system/`
 
 - **`disko.nix`** — Declarative disk layout: plaintext EFI partition, then one LUKS2 partition with a btrfs volume (root/home/nix/log/persist subvolumes + a swapfile subvolume). Applied once during install ([installing.md](installing.md)); on normal rebuilds it supplies `fileSystems`/`swapDevices`/LUKS config. The disk is the machine's `disk` (by id); only formatting uses it.
-- **`boot.nix`** — systemd-boot, a systemd-based initrd (needed for Plymouth to draw the LUKS prompt), and a Plymouth splash/unlock screen in caelestia's "hard" dark colours.
+- **`boot.nix`** — systemd-boot, the systemd-based initrd (NixOS's only kind now; it's what lets Plymouth draw the LUKS prompt), and a Plymouth splash/unlock screen in caelestia's "hard" dark colours.
 - **`gpu.nix`** — From the machine's `gpus`: graphics (+32-bit), amdgpu/i915 in the initrd so the splash runs at native resolution, Intel's VA-API driver, and the NVIDIA driver — open kernel modules, and on a hybrid laptop PRIME render offload (`nvidia-offload`) with the NVIDIA GPU powered off when unused.
-- **`hardware.nix`** — Bluetooth + blueman, fwupd.
+- **`hardware.nix`** — Bluetooth + blueman, a udev rule keeping drivers off the desktop's unusable onboard MediaTek Bluetooth, fwupd.
 - **`base.nix`** — Hostname, NetworkManager, timezone/locale/console keymap (also loaded in the initrd for non-US keymaps, for the LUKS passphrase), the user account (fish as shell), basic CLI tools, `system.stateVersion`.
 - **`nix.nix`** — Flakes, unfree packages, daily garbage collection (keeps a week), nix-ld for prebuilt binaries.
 - **`memory.nix`** — Lower `vm.swappiness`, zram as compressed in-RAM swap ahead of the disk swapfile, and earlyoom to kill runaway processes before the desktop freezes.

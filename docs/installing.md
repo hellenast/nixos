@@ -98,7 +98,7 @@ Same result, one step at a time — useful to see or adjust each step, or when t
 4. If you have the old age key, restore it now so secrets decrypt on first boot: `sudo install -D -m 0400 -o root -g root <age-key-file> /mnt/var/lib/sops-nix/key.txt`. If not, add `"system/secrets.nix"` and `"network/protonvpn.nix"` to the machine's `disabledModules` (what `fresh-install.sh` does too) and add them back after the first boot ([Adding the secrets back](#adding-the-secrets-back)).
 5. Copy the config into place — the normal deploy copy ([deploying.md](deploying.md)), rooted at `/mnt`:
    ```
-   sudo mkdir -p /mnt/etc/nixos && sudo cp -r ~/nixos/*.nix ~/nixos/modules ~/nixos/hosts ~/nixos/secrets /mnt/etc/nixos/
+   sudo mkdir -p /mnt/etc/nixos && sudo cp -r ~/nixos/*.nix ~/nixos/flake.lock ~/nixos/modules ~/nixos/hosts ~/nixos/secrets /mnt/etc/nixos/
    ```
 6. Install:
    ```

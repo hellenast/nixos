@@ -67,9 +67,22 @@ Roblox disconnects players after 20 minutes without input. **Super+Alt+A** (or "
 - One preset per device is active at a time. Switch presets in the app.
 - Keys without a mapping keep doing what they did. Without any preset, the keypad sends the ordinary keyboard keys it's set to from the factory.
 - Mapped keys still go through the keyboard layout, which is US international. A key mapped to `'`, `` ` ``, `"`, `~` or `^` is a dead key, the same as typing it on the keyboard.
-- Presets live in `~/.config/input-remapper-2`, not managed by Nix.
-- The keypad's Razer-specific features (lighting, analog actuation depth, its onboard profiles) are set by Razer's own software or OpenRazer, not by Input Remapper. Here its keys are plain on/off keys.
+- The keypad's layout is the **Layout** preset: 01 Esc, 02–05 `1`–`4`, 06–10 Tab Q W E R, 11 Left Ctrl, 12–15 A S D F, 16 Left Shift, 17–19 Z X C, 20 Space, round button Super, D-pad arrows. The round button is a real Super key, so it works with the Hyprland shortcuts (round + 02 is Super+1).
+- Presets live in `~/.config/input-remapper-2`. The ones kept in this repo, in `modules/gaming/input-remapper-presets/` (same folder layout as the app's `presets`), are copied there on deploy only if they aren't there yet, which covers a fresh install. Layout is also set to autoload, unless another preset was already picked for the keypad.
+- Changes made in the app stay on this machine until you copy the preset back into the repo, e.g. `cp ~/.config/input-remapper-2/presets/"Razer Razer Tartarus Pro"/Layout.json ~/nixos/modules/gaming/input-remapper-presets/"Razer Razer Tartarus Pro"/`. New presets work the same way. A change made in the repo copy only reaches a machine that doesn't have that preset yet. To pick it up, delete the local copy and deploy.
+- Each mapping records which half of the keypad its key comes from (01–20 are one input device, the round button and D-pad another), by a hash of that device. If some keys stop being remapped after a kernel update, the hashes changed. Record those keys again in the app, save, and copy the preset back into the repo.
+- Lighting is in Polychromatic (below). The analog keys' actuation depth and the keypad's onboard profiles need Razer's own software, which isn't available here, so its keys are plain on/off keys.
 - If a preset stops applying, for example after a rebuild that restarted the daemon, run "input-remapper-autoload" from the launcher. Logs: `journalctl -u input-remapper` for the daemon, `journalctl --user -u input-remapper-autoload` for the login step.
+
+## Razer lighting / Polychromatic (`openrazer.nix`)
+
+[Polychromatic](https://polychromatic.app) sets the lighting of Razer devices, through the [OpenRazer](https://openrazer.github.io) drivers. Open it from the app launcher ("Polychromatic"), pick the device, and choose an effect, colour and brightness.
+
+- **Log out and back in (or reboot) after the first deploy.** The OpenRazer daemon only runs for members of the `openrazer` group, which only applies to new logins. Until then Polychromatic says the daemon isn't running.
+- The daemon starts at login and puts back the last lighting set, also when the keypad is plugged back in. Its saved settings are in `~/.config/openrazer`, not managed by Nix.
+- Of the two Razer devices here, only the Tartarus Pro shows up. The Viper V3 Pro SE mouse isn't supported by this OpenRazer version yet.
+- The Ripple effect lights up the keys as you press them, so the daemon has to see the presses. It can't while an Input Remapper preset is active on the keypad, because Input Remapper takes over the keypad's input. The other effects aren't affected.
+- Log: `journalctl --user -u openrazer-daemon`.
 
 ## Trainers (`trainers.nix`)
 

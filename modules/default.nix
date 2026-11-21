@@ -46,6 +46,7 @@
     # itself works without it.
     ./gaming/crossmacro.nix
     ./gaming/input-remapper.nix
+    ./gaming/openrazer.nix
     # Needs gaming/steam.nix: trainers run inside Steam's Proton games.
     ./gaming/trainers.nix
     # ALVR streams SteamVR, so this is only useful with gaming/steam.nix.

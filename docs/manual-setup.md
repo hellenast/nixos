@@ -6,7 +6,7 @@ Topic pages:
 - [Secrets](secrets.md) — the age key, needed before the first rebuild that decrypts anything
 - [ProtonVPN](protonvpn.md) — getting and encrypting the WireGuard config
 - [Caelestia theming](theming.md) — one-time steps for Spotify, Spotube, Vesktop, VSCodium, Zen, Helium, ZapZap, Steam
-- [Gaming](gaming.md) — GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, Tartarus Pro key mappings, trainers, VR headset
+- [Gaming](gaming.md) — GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, Tartarus Pro keys and lighting, trainers, VR headset
 - [VMs and containers](virtualisation.md) — Windows VM / Dubbing AI, Waydroid
 
 ## Every fresh install / new machine
@@ -14,7 +14,7 @@ Topic pages:
 - Generate the machine's `hosts/<name>/hardware-configuration.nix` for the actual hardware (`nixos-generate-config`; `fresh-install.sh` does).
 - Check the machine's `hosts/<name>/variables.nix` — laptop or not, GPUs, keyboard, monitor names ([machines.md](machines.md)) — and `variables.nix` for what they all share.
 - Put the age private key in place *before* the first rebuild that uses `system/secrets.nix` ([secrets.md](secrets.md)). `fresh-install.sh` does, if the key is on the install stick.
-- Log out and back in once after the first deploy — group memberships (`docker`, `libvirtd`, `crossmacro`, `wheel`, `video`, `audio`) only apply at login.
+- Log out and back in once after the first deploy — group memberships (`docker`, `libvirtd`, `crossmacro`, `openrazer`, `wheel`, `video`, `audio`) only apply at login.
 
 ## Amazfit watch (`apps/amazfit.nix`)
 

@@ -6,7 +6,7 @@ Topic pages:
 - [Secrets](secrets.md) — the age key, needed before the first rebuild that decrypts anything
 - [ProtonVPN](protonvpn.md) — getting and encrypting the WireGuard config
 - [Caelestia theming](theming.md) — one-time steps for Spotify, Spotube, Vesktop, VSCodium, Zen, Helium, ZapZap, Steam
-- [Gaming](gaming.md) — GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, VR headset
+- [Gaming](gaming.md) — GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, Tartarus Pro key mappings, trainers, VR headset
 - [VMs and containers](virtualisation.md) — Windows VM / Dubbing AI, Waydroid
 
 ## Every fresh install / new machine

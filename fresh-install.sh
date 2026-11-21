@@ -85,6 +85,7 @@ declare -gA MODULE_NEEDS=(
     [gaming/roblox.nix]="desktop/flatpak.nix"     # a Flatpak app
     [home/apps/spotify.nix]="desktop/flatpak.nix" # user-scope Flatpak still needs the system service
     [gaming/vr.nix]="gaming/steam.nix"            # ALVR streams SteamVR
+    [gaming/trainers.nix]="gaming/steam.nix"      # trainers run inside Steam's Proton games
     [virtualisation/windows-vm.nix]="virtualisation/audio-routing.nix"
     [virtualisation/audio-routing.nix]="virtualisation/windows-vm.nix desktop/audio.nix"
     [network/tor.nix]="home/apps/vesktop.nix"     # its launcher is "Vesktop (Tor)"

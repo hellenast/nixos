@@ -56,6 +56,38 @@ Roblox disconnects players after 20 minutes without input. **Super+Alt+A** (or "
 - The key and interval are `antiAfkKey`/`antiAfkInterval` at the top of `modules/gaming/crossmacro.nix`. Keep the interval under caelestia's 3-minute lock timeout.
 - It runs as the `roblox-anti-afk` user service: `journalctl --user -u roblox-anti-afk` for its log.
 
+## Razer Tartarus Pro / Input Remapper (`input-remapper.nix`)
+
+[Input Remapper](https://github.com/sezanzeb/input-remapper) changes what each key of one specific device does, so the keypad can be remapped without touching the regular keyboard. Open it from the app launcher ("Input Remapper"). It asks for your password when it opens, to read the devices.
+
+1. Pick **Razer Razer Tartarus Pro** in the device list and create a preset. Make one per game if they need different layouts.
+2. Add a mapping, click **Record** and press the keypad key, then type what it should send: a key (`a`, `F13`), a combination (`Control_L + c`), a mouse button (`BTN_LEFT`) or a macro (e.g. `key(1).wait(50).key(2)`). The output field autocompletes names.
+3. **Apply** to start using it, and turn on **Autoload** so it's applied at every login and whenever the keypad is plugged in.
+
+- One preset per device is active at a time. Switch presets in the app.
+- Keys without a mapping keep doing what they did. Without any preset, the keypad sends the ordinary keyboard keys it's set to from the factory.
+- Mapped keys still go through the keyboard layout, which is US international. A key mapped to `'`, `` ` ``, `"`, `~` or `^` is a dead key, the same as typing it on the keyboard.
+- Presets live in `~/.config/input-remapper-2`, not managed by Nix.
+- The keypad's Razer-specific features (lighting, analog actuation depth, its onboard profiles) are set by Razer's own software or OpenRazer, not by Input Remapper. Here its keys are plain on/off keys.
+- If a preset stops applying, for example after a rebuild that restarted the daemon, run "input-remapper-autoload" from the launcher. Logs: `journalctl -u input-remapper` for the daemon, `journalctl --user -u input-remapper-autoload` for the login step.
+
+## Trainers (`trainers.nix`)
+
+The `trainer` command runs Windows trainers (Cheat Happens, FLiNG, Cheat Engine, any standalone `.exe`) inside a Steam game's own Proton session. A trainer started any other way can't find the game, because it's in a separate Wine session.
+
+1. In Steam, open the game's **Properties → General → Launch Options** and set them to `trainer %command%`. If you already have options there, put `trainer` first, e.g. `trainer gamemoderun %command%`.
+2. Launch the game once. That creates its folder, `~/Games/Trainers/<game name as Steam shows it>/`.
+3. Put the trainer's `.exe` in that folder (unzip it first if it came zipped). From the next launch on, the trainer starts with the game, and a notification confirms it.
+
+- Only one `.exe` can be in the folder, or nothing starts and a notification says why. Keep extra files (READMEs, DLLs the trainer needs) next to it.
+- `trainer run <exe>` starts a trainer by hand in the running game, still only for games launched with `trainer %command%`. Add the Steam app id after it if more than one is running. `trainer list` shows the running games it can reach.
+- The trainer's output goes to `~/.local/state/trainer/<app id>.log`.
+- Close the trainer when you quit the game. While it's open, Steam may still show the game as running.
+- Only Proton games are supported; native Linux games don't run Wine for a trainer to join.
+- WeMod/Wand isn't covered. It's a full app that needs .NET installed in every game's prefix, not a standalone trainer.
+
+How it works: with `STEAM_COMPAT_LAUNCHER_SERVICE=proton` set (which `trainer %command%` does), Proton starts the game through a launcher service on the session bus, `com.steampowered.App<app id>`. The Steam Linux Runtime's `steam-runtime-launch-client --inside-app=<app id>` runs commands through that service in the game's Proton environment, with its prefix and its `wine`.
+
 ## VR headset / ALVR (`vr.nix`)
 
 - Headset pairing — installing the ALVR client on the headset and connecting it to this PC — is done once per headset, outside Nix.

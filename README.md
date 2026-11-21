@@ -19,7 +19,7 @@ modules/
   system/            disk, boot, GPU, hardware, users, nix, memory, power, secrets
   desktop/           Hyprland session, audio, caelestia (system side), Thunar, Flatpak
   apps/              dev tooling, Claude Code, Amazfit watch
-  gaming/            Steam (+ Millennium theme), Minecraft, Roblox (+ anti-AFK), CrossMacro, VR
+  gaming/            Steam (+ Millennium theme), Minecraft, Roblox (+ anti-AFK), CrossMacro, Input Remapper, trainers, VR
   virtualisation/    Windows VM + its virtual mic, Waydroid
   network/           ProtonVPN split tunnel, Tor
   home/              home-manager: caelestia, Hyprland config, terminal, apps
@@ -37,7 +37,7 @@ docs/
   - [Secrets](docs/secrets.md) — sops-nix and the age key
   - [ProtonVPN](docs/protonvpn.md) — WireGuard config, per-app VPN
   - [Caelestia theming](docs/theming.md) — Spotify, Spotube, Vesktop, VSCodium, Zen, Helium, ZapZap, Steam
-  - [Gaming](docs/gaming.md) — Steam/GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, VR
+  - [Gaming](docs/gaming.md) — Steam/GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, Tartarus Pro key mappings, trainers, VR
   - [VMs and containers](docs/virtualisation.md) — Windows VM / Dubbing AI, Waydroid
 
 ## Deploying

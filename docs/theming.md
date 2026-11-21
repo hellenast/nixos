@@ -20,10 +20,13 @@ How the integrations plug in (`modules/home/caelestia.nix`):
 
 ## Spotube (`home/apps/spotube.nix`)
 
-- Partial theming only: Spotube 5 has no custom colours, just twelve built-in colour schemes (Settings > Appearance). The accent is set to whichever is nearest the scheme's primary (a grey one for monochrome schemes), and light/dark follows the scheme. Backgrounds are that preset's own near-black/white, not caelestia's surfaces.
-- Not live: both are written into Spotube's database right before each launch, so a scheme change shows the next time Spotube starts.
-- The very first start is unthemed: Spotube creates its database then, and only the start after that picks up the scheme.
-- Picking a colour scheme or theme mode in Spotube's settings only lasts until its next launch.
+- Spotube 6 has no custom colours (three fixed palettes), so the scheme's colours are patched into a copy of its binary in `~/.cache/caelestia/spotube`, and the `spotube` command runs that. On btrfs the copy is a reflink and takes next to no space. Delete the directory to drop it; the next launch makes it again.
+- Not live: the copy is redone at launch when the scheme has changed, so a new scheme shows the next time Spotube starts. Light/dark does follow live (the theme mode is kept on "System"), but a switch while Spotube runs shows Spotube's stock palette for the new mode until it restarts.
+- In light mode a few things stay plain white (raised buttons and cards): Spotube shares that white with the rest of the app, so it can't be patched on its own.
+- The palette and theme mode are set in Spotube's settings at launch, so changing them there only lasts until the next launch. The very first start is on the default palette, where text on the accent stays white.
+- A Spotube update that moves the colours makes the rebuild fail at `spotube-palettes.json`, rather than silently leaving Spotube unthemed. Its colour table comes from millennium's `theme/Theme.kt` and needs updating with it.
+- Packaged in the module itself until nixpkgs moves past 5.x; a rebuild warns once it has.
+- Spotube 6 doesn't carry anything over from 5: it starts over in `~/.local/share/Spotube` (plugins are a new kind too, so the Spotify one needs installing and logging into again). 5's data is left behind in `~/.local/share/oss.krtirtho.spotube`.
 
 ## Vesktop (`home/apps/vesktop.nix`)
 

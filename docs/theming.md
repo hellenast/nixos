@@ -58,6 +58,14 @@ How the integrations plug in (`modules/home/caelestia.nix`):
 - Not live: both are read when ZapZap starts (the CSS also on a page reload, Ctrl+R). The logged-out QR/landing page keeps WhatsApp's cream background — it's hardcoded there, not a variable.
 - Removing `caelestia.css` in ZapZap's Customizations settings only lasts until the next rebuild re-links it; disabling it there (the per-file toggle) sticks.
 
+## Beeper (`home/apps/beeper.nix`)
+
+- Beeper's own custom CSS feature: the `beeper.css` template, linked in as `~/.config/BeeperTexts/custom.css`. Nothing to switch on — Beeper loads that file whenever it exists. It maps caelestia's Material roles onto Beeper's colour variables (and fixes the few places Beeper hardcodes white text on the accent).
+- Not live: Beeper reads the file at startup, and on **Reload custom CSS** in its command bar (or **Reload CSS** next to the custom CSS settings). Light/dark does follow the desktop live, as long as Beeper's theme stays on **System** (its default).
+- Leave Beeper's colour themes (the monochrome and gradient ones in its appearance settings) on the default: they paint their own tints and gradients over the scheme.
+- Beeper's **Open CSS file in editor** edits the rendered file, which the next scheme change overwrites; changes belong in the template in `beeper.nix`. **Reset CSS** deletes the link, so Beeper runs unthemed until the next rebuild puts it back.
+- The onboarding and login screens' illustrations are images and keep their own colours.
+
 ## Steam (`gaming/steam.nix`)
 
 - Millennium (Steam client modding) plus the Material theme with its Matugen colour option, fed by the `steam-material.css` template. Colours and light/dark follow scheme changes live — the theme re-reads its colour file every 1.5s.

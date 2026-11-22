@@ -17,6 +17,7 @@
     ./apps/spotify.nix
     ./apps/spotube.nix
     ./apps/zapzap.nix
+    ./apps/beeper.nix
     ./apps/media.nix
     ./apps/calculator.nix
   ];

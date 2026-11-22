@@ -74,6 +74,7 @@ What each file does. Paths are relative to `modules/`. System modules are listed
 - **`apps/spotify.nix`** — Spotify as a user-scope Flatpak, spicetify with the caelestia theme, re-applied on scheme changes, and the music scratchpad toggle.
 - **`apps/spotube.nix`** — Spotube 6 (open-source music client, packaged here until nixpkgs has it), run from a copy of its binary with the scheme's colours patched in, light/dark following the scheme live.
 - **`apps/zapzap.nix`** — ZapZap (WhatsApp): WhatsApp Web CSS and a patched Qt palette, both from the scheme.
+- **`apps/beeper.nix`** — Beeper (one inbox for WhatsApp, Telegram, Signal, Discord, ...), themed through its own custom CSS file, rendered from the scheme.
 - **`apps/media.nix`** — VLC (default for video/audio), Krita, Drawing, Webcamoid.
 - **`apps/calculator.nix`** — GNOME Calculator, themed by caelestia's GTK theming as a libadwaita app, with the TLS module its currency rates need.
 

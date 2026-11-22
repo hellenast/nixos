@@ -36,7 +36,7 @@ docs/
 - [Manual setup](docs/manual-setup.md) — everything `nixos-rebuild` can't do for you
   - [Secrets](docs/secrets.md) — sops-nix and the age key
   - [ProtonVPN](docs/protonvpn.md) — WireGuard config, per-app VPN
-  - [Caelestia theming](docs/theming.md) — Spotify, Spotube, Vesktop, VSCodium, Zen, Helium, ZapZap, Steam
+  - [Caelestia theming](docs/theming.md) — Spotify, Spotube, Vesktop, VSCodium, Zen, Helium, ZapZap, Beeper, Steam
   - [Gaming](docs/gaming.md) — Steam/GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, Tartarus Pro keys and lighting, trainers, VR
   - [VMs and containers](docs/virtualisation.md) — Windows VM / Dubbing AI, Waydroid
 

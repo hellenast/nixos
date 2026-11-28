@@ -13,6 +13,8 @@ sudo rm -rf /etc/nixos/modules /etc/nixos/hosts && sudo cp -r ~/nixos/*.nix ~/ni
 - **`flake.lock` is copied too**, so `/etc/nixos` builds exactly the input versions locked in `~/nixos` — the ones reviewed with `update-flake.sh` (below). Leaving it out makes the rebuild use whatever lock `/etc/nixos` already has: input updates silently don't happen, and module changes that depend on them fail to build.
 - `nixos-rebuild switch --flake .#` (no name after `#`) builds the `nixosConfigurations` entry matching the machine's actual hostname: its folder in `hosts/` ([machines.md](machines.md)). The same command works on every machine.
 
+The cloud server deploys differently, over SSH from `~/nixos` ([beeper-bridges.md](beeper-bridges.md#the-cloud-server-hyena-cloud)).
+
 After the first deploy on a new machine, log out and back in once: group memberships (`docker`, `libvirtd`, `wheel`, ...) only take effect on the next login.
 
 ### Moving from the old flat layout

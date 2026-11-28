@@ -23,6 +23,7 @@ modules/
   virtualisation/    Windows VM + its virtual mic, Waydroid
   network/           ProtonVPN split tunnel, Tor
   home/              home-manager: caelestia, Hyprland config, terminal, apps
+server/              the Oracle Cloud server, for the self-hosted Beeper bridges
 docs/
 ```
 
@@ -30,6 +31,7 @@ docs/
 
 - [Getting started](docs/getting-started.md) — adapting this repo to your own machines
 - [Machines](docs/machines.md) — the desktop and the laptops, and what each machine's variables do
+- [Self-hosted Beeper bridges](docs/beeper-bridges.md) — Beeper's bridges and voice message transcription on the desktop, later an Oracle Cloud VM
 - [Deploying and updating](docs/deploying.md) — the deploy command, keeping things up to date
 - [Installing from scratch](docs/installing.md) — full-disk-encrypted reinstall with disko
 - [Modules](docs/modules.md) — what every module does

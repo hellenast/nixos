@@ -37,6 +37,9 @@
     ./apps/dev.nix
     ./apps/ai.nix
     ./apps/amazfit.nix
+    # Only one machine may run it at a time (docs/beeper-bridges.md): the laptops
+    # leave it out, and the desktop will once the cloud server takes over.
+    ./apps/beeper-bridges.nix
 
     # --- Gaming ---
     ./gaming/steam.nix

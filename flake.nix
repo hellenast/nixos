@@ -147,7 +147,15 @@
       ];
     };
   in {
-    nixosConfigurations = lib.genAttrs hostnames mkHost;
+    nixosConfigurations = lib.genAttrs hostnames mkHost // {
+      # The Oracle Cloud server for the self-hosted Beeper bridges and voice
+      # transcription (server/, docs/beeper-bridges.md). Its own configuration, not
+      # a machine in hosts/: it shares none of their modules.
+      hyena-cloud = lib.nixosSystem {
+        specialArgs = { inherit inputs; };
+        modules = [ ./server ];
+      };
+    };
 
     # The install stick's ISO: NixOS's minimal installer plus a
     # `fresh-install` command (installer/iso.nix). prepare-usb.sh builds it
@@ -175,6 +183,10 @@
           isDarwin = nixpkgs.legacyPackages.${system}.stdenv.hostPlatform.isDarwin;
         };
       };
+
+      # The server's voice transcriber, to try it from the desktop
+      # (docs/beeper-bridges.md).
+      beeper-transcriber = nixpkgs.legacyPackages.${system}.callPackage ./modules/apps/beeper-bridges/pkgs/beeper-transcriber/package.nix { };
     };
   };
 }

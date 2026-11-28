@@ -44,5 +44,6 @@
   disabledModules = [
     "virtualisation/windows-vm.nix"     # built around the desktop's USB mic, and starts at boot
     "virtualisation/audio-routing.nix"  # the Windows VM's virtual mic
+    "apps/beeper-bridges.nix"           # runs on one machine only: the desktop, then the cloud server
   ];
 }

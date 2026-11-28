@@ -38,6 +38,7 @@ What each file does. Paths are relative to `modules/`. System modules are listed
 - **`dev.nix`** — Docker (socket-activated, not started at boot), a Rancher server container (started by hand), kubectl/helm/rancher CLI, docker-compose/buildx, node/bun/pnpm, Cypress, Beekeeper Studio, Insomnia. Postgres runs per project through docker-compose.
 - **`ai.nix`** — Claude Code, mainly for `claude rc` (remote control from phone/browser).
 - **`amazfit.nix`** — Amazfish (Flatpak) for an Amazfit GTR2e watch, a packaged `huami-token`, and `amazfit-get-key.sh` to fetch the watch's pairing key.
+- **`beeper-bridges.nix`** — Beeper's bridges (WhatsApp, 2× Discord, LinkedIn, Signal) self-hosted, so their accounts don't count against Beeper's account limit, and voice message transcription with a local Whisper (GPU when there is one) that shows in the Beeper apps. One machine at a time: the laptops leave it out. See [beeper-bridges.md](beeper-bridges.md).
 
 ## `gaming/`
 

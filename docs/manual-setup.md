@@ -8,6 +8,7 @@ Topic pages:
 - [Caelestia theming](theming.md) — one-time steps for Spotify, Spotube, Vesktop, VSCodium, Zen, Helium, ZapZap, Beeper, Steam
 - [Gaming](gaming.md) — GameMode, Minecraft (both editions), Roblox anti-AFK / CrossMacro, Tartarus Pro keys and lighting, trainers, VR headset
 - [VMs and containers](virtualisation.md) — Windows VM / Dubbing AI, Waydroid
+- [Self-hosted Beeper bridges](beeper-bridges.md) — bridge and transcriber logins, the Oracle VM
 
 ## Every fresh install / new machine
 
